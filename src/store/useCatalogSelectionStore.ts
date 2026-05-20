@@ -11,26 +11,72 @@
  * - Saber qué elemento concreto está seleccionado.
  * - Actuar como router visual del workspace.
  *
- * Este store NO ejecuta algoritmos.
- * Este store NO guarda datos 3D.
- * Este store NO guarda arreglos masivos.
+ * Importante:
+ * - Este store NO ejecuta algoritmos.
+ * - Este store NO guarda datos 3D.
+ * - Este store NO guarda arreglos masivos.
+ * - Solo guarda IDs de selección.
  */
 
 import { create } from "zustand";
 
-import type { CatalogDomainId } from "../shared/types/catalog.types";
+import type {
+  CatalogDomainId,
+  CatalogItemId,
+} from "../shared/constants/catalog";
 
 interface CatalogSelectionState {
-  activeDomainId: CatalogDomainId | null;
-  selectedItemId: string | null;
+  /**
+   * Dominio activo del laboratorio.
+   *
+   * Puede ser:
+   * - "data-structures"
+   * - "algorithms"
+   *
+   * Lo dejamos por defecto en "algorithms"
+   * porque actualmente Bubble Sort ya está implementado.
+   */
+  activeDomainId: CatalogDomainId;
 
+  /**
+   * Item concreto seleccionado.
+   *
+   * Ejemplo actual:
+   * - "bubble-sort"
+   *
+   * Cuando agregues más items al catálogo,
+   * este tipo crecerá automáticamente desde CATALOG_ITEMS.
+   */
+  selectedItemId: CatalogItemId | null;
+
+  /**
+   * Cambia el dominio activo.
+   *
+   * También limpia selectedItemId para evitar que quede seleccionado
+   * un algoritmo cuando cambias a estructuras, o una estructura
+   * cuando cambias a algoritmos.
+   */
   selectDomain: (domainId: CatalogDomainId) => void;
-  selectItem: (itemId: string) => void;
+
+  /**
+   * Selecciona un item concreto del catálogo.
+   */
+  selectItem: (itemId: CatalogItemId) => void;
+
+  /**
+   * Limpia solo el item seleccionado,
+   * pero mantiene el dominio activo.
+   */
+  clearSelectedItem: () => void;
+
+  /**
+   * Reinicia toda la selección al estado inicial.
+   */
   clearSelection: () => void;
 }
 
 export const useCatalogSelectionStore = create<CatalogSelectionState>((set) => ({
-  activeDomainId: null,
+  activeDomainId: "algorithms",
   selectedItemId: null,
 
   selectDomain: (domainId) =>
@@ -44,9 +90,14 @@ export const useCatalogSelectionStore = create<CatalogSelectionState>((set) => (
       selectedItemId: itemId,
     }),
 
+  clearSelectedItem: () =>
+    set({
+      selectedItemId: null,
+    }),
+
   clearSelection: () =>
     set({
-      activeDomainId: null,
+      activeDomainId: "algorithms",
       selectedItemId: null,
     }),
 }));

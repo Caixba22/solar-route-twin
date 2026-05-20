@@ -8,21 +8,32 @@
  *
  * Responsabilidades:
  * - Mostrar el selector de algoritmos disponibles.
- * - Detectar qué algoritmo eligió el usuario desde el catálogo.
+ * - Leer los algoritmos desde el catálogo central.
+ * - Detectar qué algoritmo eligió el usuario.
  * - Montar la escena 3D correspondiente dentro de Canvas.
- * - Mostrar controles de reproducción para ejecutar/pausar/resetear.
+ * - Mostrar controles de reproducción para ejecutar, pausar y reiniciar.
  *
- * Conexión:
+ * Conexión actual:
  * selectItem() cambia selectedItemId.
  * Si selectedItemId === "bubble-sort", se monta SortingScene.
  * SortingScene usa useSortingRunner.
- * useSortingRunner ejecuta bubbleSortGenerator.
+ * useSortingRunner ejecuta el generador del algoritmo.
+ *
+ * Importante:
+ * - Este archivo ya no importa catalogCategories.ts ni catalogItems.ts.
+ * - Ahora usa catalogSelectors.ts para consultar el catálogo.
+ * - isCatalogItemId valida que el valor del select sea un item real del catálogo.
  */
 
 import { Canvas } from "@react-three/fiber";
 
-import { CATALOG_CATEGORIES } from "../../shared/constants/catalogCategories";
-import { CATALOG_ITEMS } from "../../shared/constants/catalogItems";
+import {
+  getItemsByDomain,
+  getItemsByCategory,
+  getVisibleCategoriesByDomain,
+  isCatalogItemId,
+} from "../../shared/constants/catalogSelectors";
+
 import { PlaybackControls } from "../../shared/components/ui/PlaybackControls";
 
 import { useCatalogSelectionStore } from "../../store/useCatalogSelectionStore";
@@ -32,18 +43,23 @@ import { SortingScene } from "../../features/algorithms/sorting/scene/SortingSce
 import type { DataElement } from "../../features/algorithms/sorting/components/SortingBars";
 
 /**
- * Cantidad inicial de barras para Bubble Sort.
+ * Cantidad inicial de barras para algoritmos de ordenamiento.
  *
- * Si quieres más barras, cambia este número.
+ * Por ahora lo usa Bubble Sort, pero después puede reutilizarse
+ * para Selection Sort, Insertion Sort, Merge Sort, etc.
+ *
  * Recomendado:
  * - 16 a 24 para visualización clara.
- * - 32 o más si ajustas cámara y spacing.
+ * - 32 o más si ajustas cámara, spacing y rendimiento.
  */
-const BUBBLE_SORT_BAR_COUNT = 24;
+const SORTING_BAR_COUNT = 24;
 
 /**
  * Genera un arreglo del 1 al tamaño indicado
  * y lo revuelve usando Fisher-Yates.
+ *
+ * Fisher-Yates:
+ * Algoritmo para mezclar un arreglo de forma uniforme.
  */
 const createShuffledArray = (size: number): number[] => {
   const values = Array.from({ length: size }, (_, index) => index + 1);
@@ -61,13 +77,24 @@ const createShuffledArray = (size: number): number[] => {
 };
 
 /**
- * Arreglo inicial aleatorio para Bubble Sort.
+ * Arreglo inicial para la visualización de ordenamientos.
  *
  * Cada número representa la altura de una barra.
+ *
+ * Nota:
+ * Este arreglo se crea una vez al cargar el módulo.
+ * Más adelante podemos moverlo a un estado/control si quieres
+ * regenerar datos desde un botón.
  */
-const BUBBLE_SORT_INITIAL_ARRAY = createShuffledArray(BUBBLE_SORT_BAR_COUNT);
+const SORTING_INITIAL_ARRAY = createShuffledArray(SORTING_BAR_COUNT);
 
-const bubbleSortData: DataElement[] = BUBBLE_SORT_INITIAL_ARRAY.map((value) => ({
+/**
+ * Datos que recibe SortingBars.
+ *
+ * SortingBars espera objetos con forma:
+ * { value: number }
+ */
+const sortingData: DataElement[] = SORTING_INITIAL_ARRAY.map((value) => ({
   value,
 }));
 
@@ -76,23 +103,55 @@ export const AlgorithmsWorkspaceSection = () => {
     (state) => state.selectedItemId,
   );
 
-  const selectItem = useCatalogSelectionStore((state) => state.selectItem);
-  const resetRuntime = useAlgoRuntimeStore((state) => state.reset);
-
-  const algorithmItems = CATALOG_ITEMS.filter(
-    (item) => item.type === "algorithm",
+  const selectItem = useCatalogSelectionStore(
+    (state) => state.selectItem,
   );
 
-  const availableCategories = CATALOG_CATEGORIES.filter((category) =>
-    algorithmItems.some((item) => item.categoryId === category.id),
-  ).sort((a, b) => a.order - b.order);
+  const resetRuntime = useAlgoRuntimeStore(
+    (state) => state.reset,
+  );
 
-  const selectedItem = algorithmItems.find((item) => item.id === selectedItemId);
+  /**
+   * Obtiene todos los items pertenecientes al dominio:
+   * "algorithms".
+   *
+   * Esto incluye únicamente algoritmos implementados en CATALOG_ITEMS.
+   */
+  const algorithmItems = getItemsByDomain("algorithms");
+
+  /**
+   * Obtiene solo las categorías del dominio "algorithms"
+   * que tienen al menos un item implementado.
+   *
+   * Así evitamos mostrar categorías vacías en el select.
+   */
+  const availableCategories = getVisibleCategoriesByDomain("algorithms");
+
+  /**
+   * Busca el algoritmo seleccionado dentro de los algoritmos disponibles.
+   *
+   * Si selectedItemId pertenece a una estructura de datos o está vacío,
+   * selectedItem será undefined.
+   */
+  const selectedItem = algorithmItems.find(
+    (item) => item.id === selectedItemId,
+  );
+
+  const hasAvailableItems = algorithmItems.length > 0;
 
   const handleSelectAlgorithm = (itemId: string) => {
     /**
+     * El value de un select siempre llega como string.
+     * isCatalogItemId confirma que ese string existe realmente
+     * dentro de CATALOG_ITEMS.
+     */
+    if (!isCatalogItemId(itemId)) return;
+
+    /**
      * Cada vez que se cambia de algoritmo, se reinicia el runtime.
-     * Así evitamos que quede corriendo un algoritmo anterior.
+     *
+     * Esto evita que quede corriendo una animación anterior
+     * cuando el usuario selecciona otro algoritmo.
      */
     resetRuntime();
     selectItem(itemId);
@@ -111,7 +170,11 @@ export const AlgorithmsWorkspaceSection = () => {
 
     /**
      * IMPORTANTE:
-     * Este id debe coincidir exactamente con el id definido en catalogItems.ts.
+     * Este id debe coincidir exactamente con el id definido en catalog.ts.
+     *
+     * Por ahora solo Bubble Sort tiene escena conectada.
+     * Después este bloque se puede volver más genérico para todos
+     * los algoritmos de ordenamiento.
      */
     if (selectedItem.id === "bubble-sort") {
       return (
@@ -123,8 +186,8 @@ export const AlgorithmsWorkspaceSection = () => {
           <div className="min-h-0 flex-1">
             <Canvas className="h-full w-full">
               <SortingScene
-                data={bubbleSortData}
-                rawArray={BUBBLE_SORT_INITIAL_ARRAY}
+                data={sortingData}
+                rawArray={SORTING_INITIAL_ARRAY}
               />
             </Canvas>
           </div>
@@ -178,16 +241,22 @@ export const AlgorithmsWorkspaceSection = () => {
               id="algorithm-select"
               value={selectedItemId ?? ""}
               onChange={(event) => handleSelectAlgorithm(event.target.value)}
-              className="w-full appearance-none rounded-2xl border border-algo-border bg-data-background px-5 py-4 pr-12 text-sm font-semibold text-text-primary outline-none transition hover:bg-surface-hover focus:border-data-active"
+              disabled={!hasAvailableItems}
+              className={[
+                "w-full appearance-none rounded-2xl border border-algo-border bg-data-background px-5 py-4 pr-12 text-sm font-semibold text-text-primary outline-none transition focus:border-data-active",
+                hasAvailableItems
+                  ? "hover:bg-surface-hover"
+                  : "cursor-not-allowed opacity-60",
+              ].join(" ")}
             >
               <option value="" disabled>
-                Selecciona un algoritmo
+                {hasAvailableItems
+                  ? "Selecciona un algoritmo"
+                  : "Aún no hay algoritmos implementados"}
               </option>
 
               {availableCategories.map((category) => {
-                const categoryItems = algorithmItems.filter(
-                  (item) => item.categoryId === category.id,
-                );
+                const categoryItems = getItemsByCategory(category.id);
 
                 return (
                   <optgroup key={category.id} label={category.title}>
@@ -226,6 +295,19 @@ export const AlgorithmsWorkspaceSection = () => {
                   </span>
                 )}
               </div>
+            </div>
+          )}
+
+          {!hasAvailableItems && (
+            <div className="mt-4 rounded-2xl border border-algo-border bg-data-background/60 p-4 sm:p-5">
+              <h3 className="font-bold text-text-primary">
+                Sin algoritmos disponibles todavía
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-text-secondary">
+                Este espacio ya está preparado. Cuando agregues algoritmos al
+                catálogo, aparecerán automáticamente en este selector.
+              </p>
             </div>
           )}
         </div>

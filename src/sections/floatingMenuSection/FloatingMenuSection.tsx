@@ -1,33 +1,81 @@
+// Ruta aproximada:
+// src/sections/floatingMenuSection/FloatingMenuSection.tsx
+
+/**
+ * FloatingMenuSection
+ *
+ * Menú flotante para seleccionar el dominio activo del laboratorio.
+ *
+ * Ahora usa el catálogo como fuente de verdad:
+ * - Los dominios vienen desde catalogSelectors.ts.
+ * - Los tipos vienen desde catalog.ts.
+ *
+ * Así evitamos duplicar textos como:
+ * - "Estructuras de datos"
+ * - "Algoritmos"
+ *
+ * Si después cambias un título o descripción en catalog.ts,
+ * el menú se actualiza automáticamente.
+ */
+
 import { useState } from "react";
-import type { CatalogDomainId } from "../../shared/types/catalog.types";
+
+import type {
+  CatalogAccent,
+  CatalogDomainId,
+} from "../../shared/constants/catalog";
+
+import { getCatalogDomains } from "../../shared/constants/catalogSelectors";
+
 import { useCatalogSelectionStore } from "../../store/useCatalogSelectionStore";
 
-type FloatingMenuItem = {
-  id: CatalogDomainId;
-  label: string;
-  description: string;
-  accent: "active" | "comparing";
-};
+/**
+ * Dominios visibles en el menú.
+ *
+ * Vienen ordenados desde el selector del catálogo.
+ */
+const FLOATING_MENU_ITEMS = getCatalogDomains();
 
-const FLOATING_MENU_ITEMS: FloatingMenuItem[] = [
-  {
-    id: "data-structures",
-    label: "Estructuras de datos",
-    description: "Visualizar memoria, nodos, árboles y grafos.",
-    accent: "active",
-  },
-  {
-    id: "algorithms",
-    label: "Algoritmos",
-    description: "Visualizar ordenamientos y procesos paso a paso.",
-    accent: "comparing",
-  },
-];
-
-const getAccentClassName = (accent: FloatingMenuItem["accent"]) => {
-  const classes: Record<FloatingMenuItem["accent"], string> = {
-    active: "bg-data-active",
-    comparing: "bg-data-comparing",
+/**
+ * Devuelve las clases visuales según el acento del dominio.
+ *
+ * active:
+ * - Se usa para Estructuras de datos.
+ *
+ * comparing:
+ * - Se usa para Algoritmos.
+ *
+ * No usamos clases dinámicas como bg-data-${accent}
+ * porque Tailwind puede no detectarlas correctamente.
+ */
+const getAccentClassNames = (accent: CatalogAccent) => {
+  const classes: Record<
+    CatalogAccent,
+    {
+      dot: string;
+      iconBackground: string;
+      iconRing: string;
+      activeBorder: string;
+      activeBackground: string;
+      activeText: string;
+    }
+  > = {
+    active: {
+      dot: "bg-data-active",
+      iconBackground: "bg-data-active/15",
+      iconRing: "ring-data-active/30",
+      activeBorder: "border-data-active",
+      activeBackground: "bg-data-active/15",
+      activeText: "text-data-active",
+    },
+    comparing: {
+      dot: "bg-data-comparing",
+      iconBackground: "bg-data-comparing/15",
+      iconRing: "ring-data-comparing/30",
+      activeBorder: "border-data-comparing",
+      activeBackground: "bg-data-comparing/15",
+      activeText: "text-data-comparing",
+    },
   };
 
   return classes[accent];
@@ -39,7 +87,24 @@ export const FloatingMenuSection = () => {
   const activeDomainId = useCatalogSelectionStore(
     (state) => state.activeDomainId,
   );
-  const selectDomain = useCatalogSelectionStore((state) => state.selectDomain);
+
+  const selectDomain = useCatalogSelectionStore(
+    (state) => state.selectDomain,
+  );
+
+  /**
+   * Dominio actualmente seleccionado.
+   *
+   * Sirve para pintar el encabezado del menú con el color
+   * correspondiente al dominio activo.
+   */
+  const activeDomain = FLOATING_MENU_ITEMS.find(
+    (item) => item.id === activeDomainId,
+  );
+
+  const activeAccentClasses = getAccentClassNames(
+    activeDomain?.accent ?? "active",
+  );
 
   const handleSelectDomain = (domainId: CatalogDomainId) => {
     selectDomain(domainId);
@@ -63,7 +128,13 @@ export const FloatingMenuSection = () => {
           aria-controls="floating-domain-panel"
         >
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-data-active/15 text-algo-accent ring-1 ring-data-active/30">
+            <div
+              className={[
+                "flex h-10 w-10 items-center justify-center rounded-2xl text-algo-accent ring-1",
+                activeAccentClasses.iconBackground,
+                activeAccentClasses.iconRing,
+              ].join(" ")}
+            >
               ⬡
             </div>
 
@@ -90,6 +161,7 @@ export const FloatingMenuSection = () => {
             <ul className="flex flex-col gap-2">
               {FLOATING_MENU_ITEMS.map((item) => {
                 const isActive = activeDomainId === item.id;
+                const accentClasses = getAccentClassNames(item.accent);
 
                 return (
                   <li key={item.id}>
@@ -99,21 +171,30 @@ export const FloatingMenuSection = () => {
                       className={[
                         "group w-full rounded-2xl border px-4 py-3 text-left transition",
                         isActive
-                          ? "border-data-active bg-data-active/15"
+                          ? `${accentClasses.activeBorder} ${accentClasses.activeBackground}`
                           : "border-transparent hover:border-algo-border hover:bg-surface-hover",
                       ].join(" ")}
                     >
                       <div className="flex items-start gap-3">
                         <span
-                          className={`mt-1 h-2.5 w-2.5 rounded-full ${getAccentClassName(
-                            item.accent,
-                          )}`}
+                          className={[
+                            "mt-1 h-2.5 w-2.5 rounded-full",
+                            accentClasses.dot,
+                          ].join(" ")}
                         />
 
                         <div>
-                          <p className="text-sm font-semibold text-text-primary transition group-hover:text-algo-accent">
-                            {item.label}
+                          <p
+                            className={[
+                              "text-sm font-semibold transition group-hover:text-algo-accent",
+                              isActive
+                                ? accentClasses.activeText
+                                : "text-text-primary",
+                            ].join(" ")}
+                          >
+                            {item.title}
                           </p>
+
                           <p className="text-xs leading-relaxed text-text-secondary">
                             {item.description}
                           </p>

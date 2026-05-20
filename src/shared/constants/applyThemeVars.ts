@@ -11,6 +11,20 @@ export const applyThemeVars = () => {
   root.style.setProperty("--algo-data-sorted", ALGO_THEME.data.sorted);
   root.style.setProperty("--algo-data-critical", ALGO_THEME.data.critical);
 
+  root.style.setProperty("--algo-scene-background", ALGO_THEME.scene.background);
+  root.style.setProperty(
+    "--algo-scene-sorting-backdrop",
+    ALGO_THEME.scene.sortingBackdrop,
+  );
+  root.style.setProperty(
+    "--algo-scene-sorting-backdrop-border",
+    ALGO_THEME.scene.sortingBackdropBorder,
+  );
+  root.style.setProperty(
+    "--algo-scene-sorting-backdrop-grid",
+    ALGO_THEME.scene.sortingBackdropGrid,
+  );
+
   root.style.setProperty("--algo-ui-surface", ALGO_THEME.ui.surface);
   root.style.setProperty("--algo-ui-surface-hover", ALGO_THEME.ui.surfaceHover);
   root.style.setProperty("--algo-ui-border", ALGO_THEME.ui.border);
