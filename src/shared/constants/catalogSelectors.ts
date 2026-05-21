@@ -29,8 +29,10 @@ import {
 
 /**
  * Ordena cualquier elemento del catálogo usando su propiedad order.
+ *
+ * No muta el arreglo original.
  */
-const sortByOrder = <T extends { order: number }>(items: readonly T[]) => {
+const sortByOrder = <T extends { order: number }>(items: readonly T[]): T[] => {
   return [...items].sort((first, second) => first.order - second.order);
 };
 
@@ -61,13 +63,6 @@ export const getCatalogCategories = (): CatalogCategory[] => {
 
 /**
  * Devuelve las categorías que pertenecen a un dominio.
- *
- * Ejemplo:
- * domainId = "algorithms"
- * devuelve categorías como:
- * - Ordenamiento por comparación
- * - Ordenamiento por división
- * - Búsqueda de caminos
  */
 export const getCategoriesByDomain = (
   domainId: CatalogDomainId,
@@ -110,13 +105,6 @@ export const getCatalogItems = (): CatalogItem[] => {
 
 /**
  * Devuelve los items de una categoría.
- *
- * Ejemplo:
- * categoryId = "comparison-sorting"
- * devuelve:
- * - Bubble Sort
- * - Selection Sort cuando lo implementes
- * - Insertion Sort cuando lo implementes
  */
 export const getItemsByCategory = (
   categoryId: CatalogCategoryId,
@@ -135,13 +123,12 @@ export const getItemsByCategory = (
 export const getItemsByDomain = (
   domainId: CatalogDomainId,
 ): CatalogItem[] => {
-  const domainCategoryIds = CATALOG_CATEGORIES
-    .filter((category) => category.domainId === domainId)
-    .map((category) => category.id);
-
-  return CATALOG_ITEMS.filter((item) =>
-    domainCategoryIds.includes(item.categoryId),
+  const categories = getCategoriesByDomain(domainId);
+  const categoryIds = new Set<CatalogCategoryId>(
+    categories.map((category) => category.id),
   );
+
+  return CATALOG_ITEMS.filter((item) => categoryIds.has(item.categoryId));
 };
 
 /**
@@ -151,9 +138,7 @@ export const getItemsByDomain = (
  * type = "algorithm"
  * devuelve solo algoritmos.
  */
-export const getItemsByType = (
-  type: CatalogItemType,
-): CatalogItem[] => {
+export const getItemsByType = (type: CatalogItemType): CatalogItem[] => {
   return CATALOG_ITEMS.filter((item) => item.type === type);
 };
 
@@ -171,8 +156,6 @@ export const getCatalogItemById = (
  *
  * Útil cuando recibas ids desde la UI, rutas o stores.
  */
-export const isCatalogItemId = (
-  itemId: string,
-): itemId is CatalogItemId => {
+export const isCatalogItemId = (itemId: string): itemId is CatalogItemId => {
   return CATALOG_ITEMS.some((item) => item.id === itemId);
 };

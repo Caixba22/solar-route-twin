@@ -43,9 +43,6 @@ interface CatalogSelectionState {
    *
    * Ejemplo actual:
    * - "bubble-sort"
-   *
-   * Cuando agregues más items al catálogo,
-   * este tipo crecerá automáticamente desde CATALOG_ITEMS.
    */
   selectedItemId: CatalogItemId | null;
 

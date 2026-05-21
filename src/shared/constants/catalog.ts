@@ -17,15 +17,13 @@
 
 export type CatalogAccent = "active" | "comparing";
 
+/**
+ * Tipos posibles de item.
+ */
 export type CatalogItemType = "data-structure" | "algorithm";
 
 /**
  * Forma base de un dominio.
- *
- * El dominio representa el primer nivel del catálogo.
- * Por ejemplo:
- * - Estructuras de datos
- * - Algoritmos
  */
 type CatalogDomainDefinition = {
   id: string;
@@ -37,9 +35,6 @@ type CatalogDomainDefinition = {
 
 /**
  * Dominios principales del laboratorio.
- *
- * Estos datos pueden usarse directamente en el menú flotante,
- * porque contienen el título, la descripción y el acento visual.
  */
 export const CATALOG_DOMAINS = [
   {
@@ -59,26 +54,13 @@ export const CATALOG_DOMAINS = [
 ] as const satisfies readonly CatalogDomainDefinition[];
 
 /**
- * ID válido de dominio.
- *
- * Se genera automáticamente desde CATALOG_DOMAINS.
- * Así evitas escribir manualmente:
- * "data-structures" | "algorithms"
+ * Tipos derivados automáticamente desde CATALOG_DOMAINS.
  */
-export type CatalogDomainId = (typeof CATALOG_DOMAINS)[number]["id"];
-
-export type CatalogDomain = {
-  id: CatalogDomainId;
-  title: string;
-  description: string;
-  accent: CatalogAccent;
-  order: number;
-};
+export type CatalogDomain = (typeof CATALOG_DOMAINS)[number];
+export type CatalogDomainId = CatalogDomain["id"];
 
 /**
  * Forma base de una categoría.
- *
- * Cada categoría pertenece a un dominio mediante domainId.
  */
 type CatalogCategoryDefinition = {
   id: string;
@@ -90,19 +72,14 @@ type CatalogCategoryDefinition = {
 
 /**
  * Categorías internas del catálogo.
- *
- * Relación:
- * Dominio → Categoría
- *
- * Ejemplo:
- * Algoritmos → Ordenamiento por comparación
  */
 export const CATALOG_CATEGORIES = [
   {
     id: "linear-memory",
     domainId: "data-structures",
     title: "Memoria lineal",
-    description: "Estructuras secuenciales organizadas por posición, enlace o flujo.",
+    description:
+      "Estructuras secuenciales organizadas por posición, enlace o flujo.",
     order: 1,
   },
   {
@@ -130,7 +107,8 @@ export const CATALOG_CATEGORIES = [
     id: "probabilistic-structures",
     domainId: "data-structures",
     title: "Estructuras probabilísticas",
-    description: "Estructuras compactas para pertenencia aproximada o estimaciones.",
+    description:
+      "Estructuras compactas para pertenencia aproximada o estimaciones.",
     order: 5,
   },
   {
@@ -158,7 +136,8 @@ export const CATALOG_CATEGORIES = [
     id: "distribution-sorting",
     domainId: "algorithms",
     title: "Ordenamiento por distribución",
-    description: "Algoritmos no comparativos basados en conteo, claves o agrupación.",
+    description:
+      "Algoritmos no comparativos basados en conteo, claves o agrupación.",
     order: 12,
   },
   {
@@ -192,30 +171,13 @@ export const CATALOG_CATEGORIES = [
 ] as const satisfies readonly CatalogCategoryDefinition[];
 
 /**
- * ID válido de categoría.
- *
- * Se genera automáticamente desde CATALOG_CATEGORIES.
- * Así evitas errores cuando cambias un id como:
- * "sorting-basics" → "comparison-sorting"
+ * Tipos derivados automáticamente desde CATALOG_CATEGORIES.
  */
-export type CatalogCategoryId = (typeof CATALOG_CATEGORIES)[number]["id"];
-
-export type CatalogCategory = {
-  id: CatalogCategoryId;
-  domainId: CatalogDomainId;
-  title: string;
-  description: string;
-  order: number;
-};
+export type CatalogCategory = (typeof CATALOG_CATEGORIES)[number];
+export type CatalogCategoryId = CatalogCategory["id"];
 
 /**
  * Forma base de un item del catálogo.
- *
- * Un item puede ser:
- * - una estructura de datos
- * - un algoritmo
- *
- * Cada item se conecta a una categoría mediante categoryId.
  */
 type CatalogItemDefinition = {
   id: string;
@@ -230,11 +192,8 @@ type CatalogItemDefinition = {
 /**
  * Items actualmente implementados.
  *
- * Relación:
- * Dominio → Categoría → Item
- *
- * Ejemplo:
- * Algoritmos → Ordenamiento por comparación → Bubble Sort
+ * Importante:
+ * Si aparece aquí, debe tener visualización conectada.
  */
 export const CATALOG_ITEMS = [
   {
@@ -246,26 +205,73 @@ export const CATALOG_ITEMS = [
     complexity: "O(n²)",
     tags: ["ordenamiento", "comparación", "adyacente"],
   },
+  {
+    id: "selection-sort",
+    name: "Selection Sort",
+    type: "algorithm",
+    categoryId: "comparison-sorting",
+    description:
+      "Ordenamiento por selección del menor elemento en cada pasada.",
+    complexity: "O(n²)",
+    tags: ["ordenamiento", "comparación", "selección"],
+  },
+  {
+    id: "insertion-sort",
+    name: "Insertion Sort",
+    type: "algorithm",
+    categoryId: "comparison-sorting",
+    description:
+      "Ordenamiento por inserción progresiva dentro de una zona ordenada.",
+    complexity: "O(n²)",
+    tags: ["ordenamiento", "comparación", "inserción"],
+  },
+  {
+    id: "quick-sort",
+    name: "Quick Sort",
+    type: "algorithm",
+    categoryId: "divide-and-conquer-sorting",
+    description:
+      "Ordenamiento por partición usando un pivote y subarreglos recursivos.",
+    complexity: "O(n log n) promedio",
+    tags: ["ordenamiento", "comparación", "pivote", "divide y vencerás"],
+  },
+  {
+    id: "merge-sort",
+    name: "Merge Sort",
+    type: "algorithm",
+    categoryId: "divide-and-conquer-sorting",
+    description:
+      "Ordenamiento por división recursiva y fusión ordenada de subarreglos.",
+    complexity: "O(n log n)",
+    tags: ["ordenamiento", "comparación", "fusión", "divide y vencerás"],
+  },
+  {
+    id: "heap-sort",
+    name: "Heap Sort",
+    type: "algorithm",
+    categoryId: "hybrid-sorting",
+    description:
+      "Ordenamiento basado en una estructura de heap máximo para extraer elementos en orden.",
+    complexity: "O(n log n)",
+    tags: ["ordenamiento", "comparación", "heap", "árbol implícito"],
+  },
+  {
+    id: "counting-sort",
+    name: "Counting Sort",
+    type: "algorithm",
+    categoryId: "distribution-sorting",
+    description:
+      "Ordenamiento no comparativo que cuenta la frecuencia de cada valor y reconstruye el arreglo ordenado.",
+    complexity: "O(n + k)",
+    tags: ["ordenamiento", "conteo", "distribución", "no comparativo"],
+  },
 ] as const satisfies readonly CatalogItemDefinition[];
 
 /**
- * ID válido de item.
- *
- * Se genera automáticamente desde CATALOG_ITEMS.
- * Cuando agregues selection-sort, insertion-sort, etc.,
- * el tipo se actualizará solo.
+ * Tipos derivados automáticamente desde CATALOG_ITEMS.
  */
-export type CatalogItemId = (typeof CATALOG_ITEMS)[number]["id"];
-
-export type CatalogItem = {
-  id: CatalogItemId;
-  name: string;
-  type: CatalogItemType;
-  categoryId: CatalogCategoryId;
-  description: string;
-  complexity?: string;
-  tags?: readonly string[];
-};
+export type CatalogItem = (typeof CATALOG_ITEMS)[number];
+export type CatalogItemId = CatalogItem["id"];
 
 /**
  * Próximos elementos a implementar:
@@ -279,12 +285,7 @@ export type CatalogItem = {
  * - heap
  * - graph-basic
  *
- * Algoritmos de ordenamiento por comparación:
- * - selection-sort
- * - insertion-sort
- *
  * Algoritmos divide y vencerás:
- * - quick-sort
  * - merge-sort
  *
  * Algoritmos basados en heap:

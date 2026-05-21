@@ -11,6 +11,7 @@
  * - Preparar el espacio 3D común para ordenamientos.
  * - Renderizar un contenedor tipo cristal técnico cerrado en sus 6 caras.
  * - Renderizar las barras dentro del contenedor.
+ * - Indicar al runner qué algoritmo debe ejecutar.
  *
  * Importante:
  * - Los colores vienen desde ALGO_THEME.
@@ -29,15 +30,24 @@ import {
   type DataElement,
 } from "../components/SortingBars";
 
-import { useSortingRunner } from "../runtime/useSortingRunner";
+import {
+  useSortingRunner,
+  type SortingAlgorithmId,
+} from "../runtime/useSortingRunner";
+
 import { ALGO_THEME } from "../../../../shared/constants/theme";
 
 interface SortingSceneProps {
   data: DataElement[];
   rawArray: number[];
+  algorithmId: SortingAlgorithmId;
 }
 
-export const SortingScene = ({ data, rawArray }: SortingSceneProps) => {
+export const SortingScene = ({
+  data,
+  rawArray,
+  algorithmId,
+}: SortingSceneProps) => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
 
   const canvasWidth = useThree((state) => state.size.width);
@@ -74,7 +84,15 @@ export const SortingScene = ({ data, rawArray }: SortingSceneProps) => {
    */
   const containerCenterY = containerHeight / 2;
 
-  useSortingRunner(meshRef, rawArray);
+  /**
+   * El runner recibe el algoritmo seleccionado.
+   *
+   * Así la escena sigue siendo la misma para:
+   * - Bubble Sort
+   * - Selection Sort
+   * - futuros ordenamientos compatibles
+   */
+  useSortingRunner(meshRef, rawArray, algorithmId);
 
   return (
     <>

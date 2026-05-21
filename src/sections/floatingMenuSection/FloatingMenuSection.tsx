@@ -1,4 +1,4 @@
-// Ruta aproximada:
+// Ruta:
 // src/sections/floatingMenuSection/FloatingMenuSection.tsx
 
 /**
@@ -6,7 +6,7 @@
  *
  * Menú flotante para seleccionar el dominio activo del laboratorio.
  *
- * Ahora usa el catálogo como fuente de verdad:
+ * Usa el catálogo como fuente de verdad:
  * - Los dominios vienen desde catalogSelectors.ts.
  * - Los tipos vienen desde catalog.ts.
  *
@@ -33,6 +33,9 @@ import { useCatalogSelectionStore } from "../../store/useCatalogSelectionStore";
  * Dominios visibles en el menú.
  *
  * Vienen ordenados desde el selector del catálogo.
+ *
+ * Lo dejamos fuera del componente porque el catálogo es estático.
+ * No depende de estado React ni de props.
  */
 const FLOATING_MENU_ITEMS = getCatalogDomains();
 
@@ -45,8 +48,9 @@ const FLOATING_MENU_ITEMS = getCatalogDomains();
  * comparing:
  * - Se usa para Algoritmos.
  *
+ * Importante:
  * No usamos clases dinámicas como bg-data-${accent}
- * porque Tailwind puede no detectarlas correctamente.
+ * porque Tailwind puede no detectarlas correctamente al compilar.
  */
 const getAccentClassNames = (accent: CatalogAccent) => {
   const classes: Record<
@@ -99,7 +103,7 @@ export const FloatingMenuSection = () => {
    * correspondiente al dominio activo.
    */
   const activeDomain = FLOATING_MENU_ITEMS.find(
-    (item) => item.id === activeDomainId,
+    (domain) => domain.id === activeDomainId,
   );
 
   const activeAccentClasses = getAccentClassNames(
@@ -107,8 +111,23 @@ export const FloatingMenuSection = () => {
   );
 
   const handleSelectDomain = (domainId: CatalogDomainId) => {
+    /**
+     * selectDomain limpia también selectedItemId.
+     *
+     * Eso evita que quede seleccionado un algoritmo cuando el usuario
+     * cambia a estructuras de datos, o viceversa.
+     */
     selectDomain(domainId);
 
+    /**
+     * El scroll depende de que los workspaces tengan:
+     *
+     * id="workspace"
+     *
+     * en:
+     * - AlgorithmsWorkspaceSection
+     * - DataStructuresWorkspaceSection
+     */
     document.getElementById("workspace")?.scrollIntoView({
       behavior: "smooth",
       block: "start",
@@ -118,14 +137,19 @@ export const FloatingMenuSection = () => {
   };
 
   return (
-    <aside className="fixed left-4 right-4 top-24 z-50 pointer-events-auto sm:left-auto sm:right-6 sm:w-80">
-      <div className="overflow-hidden rounded-3xl border border-algo-border bg-surface/80 shadow-2xl backdrop-blur-xl">
+    <aside className="pointer-events-none fixed left-4 right-4 top-24 z-50 sm:left-auto sm:right-6 sm:w-80">
+      <div className="pointer-events-auto overflow-hidden rounded-3xl border border-algo-border bg-surface/80 shadow-2xl backdrop-blur-xl">
         <button
           type="button"
           onClick={() => setIsOpen((current) => !current)}
           className="flex w-full items-center justify-between px-5 py-4 text-left transition hover:bg-surface-hover/80"
           aria-expanded={isOpen}
           aria-controls="floating-domain-panel"
+          aria-label={
+            isOpen
+              ? "Cerrar menú de dominios"
+              : "Abrir menú de dominios"
+          }
         >
           <div className="flex items-center gap-3">
             <div
@@ -142,6 +166,7 @@ export const FloatingMenuSection = () => {
               <p className="text-sm font-bold text-text-primary">
                 Tipo de visualización
               </p>
+
               <p className="text-xs text-text-secondary">
                 Elige el laboratorio activo
               </p>
@@ -159,15 +184,16 @@ export const FloatingMenuSection = () => {
             className="border-t border-algo-border p-3"
           >
             <ul className="flex flex-col gap-2">
-              {FLOATING_MENU_ITEMS.map((item) => {
-                const isActive = activeDomainId === item.id;
-                const accentClasses = getAccentClassNames(item.accent);
+              {FLOATING_MENU_ITEMS.map((domain) => {
+                const isActive = activeDomainId === domain.id;
+                const accentClasses = getAccentClassNames(domain.accent);
 
                 return (
-                  <li key={item.id}>
+                  <li key={domain.id}>
                     <button
                       type="button"
-                      onClick={() => handleSelectDomain(item.id)}
+                      onClick={() => handleSelectDomain(domain.id)}
+                      aria-current={isActive ? "page" : undefined}
                       className={[
                         "group w-full rounded-2xl border px-4 py-3 text-left transition",
                         isActive
@@ -192,11 +218,11 @@ export const FloatingMenuSection = () => {
                                 : "text-text-primary",
                             ].join(" ")}
                           >
-                            {item.title}
+                            {domain.title}
                           </p>
 
                           <p className="text-xs leading-relaxed text-text-secondary">
-                            {item.description}
+                            {domain.description}
                           </p>
                         </div>
                       </div>

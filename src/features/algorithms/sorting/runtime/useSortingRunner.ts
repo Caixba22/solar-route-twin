@@ -8,7 +8,7 @@
  * Lee Zustand, ejecuta el generador y modifica las barras directamente en GPU.
  *
  * Responsabilidad:
- * - Ejecutar el algoritmo paso a paso.
+ * - Ejecutar el algoritmo seleccionado paso a paso.
  * - Actualizar posición/escala de las barras.
  * - Pintar colores por estado usando ALGO_THEME.
  *
@@ -16,6 +16,10 @@
  * - No contiene colores hardcodeados.
  * - No usa estado React para animaciones pesadas.
  * - Usa InstancedMesh directamente para mantener buen rendimiento.
+ * - Reutiliza el mismo runner para distintos algoritmos de ordenamiento.
+ *
+ * Este archivo NO decide qué algoritmos existen.
+ * Esa responsabilidad vive en sortingAlgorithmRegistry.ts.
  */
 
 import { useEffect, useMemo, useRef, type RefObject } from "react";
@@ -31,7 +35,13 @@ import {
   getSafeMaxValue,
 } from "../utils/sortingGeometry";
 
-import { bubbleSortGenerator } from "../logic/bubbleSort";
+import {
+  getSortingGeneratorFactory,
+  type SortingAlgorithmId,
+} from "./sortingAlgorithmRegistry";
+
+export type { SortingAlgorithmId } from "./sortingAlgorithmRegistry";
+export { isSortingAlgorithmId } from "./sortingAlgorithmRegistry";
 
 const colorHelper = new THREE.Color();
 const dummy = new THREE.Object3D();
@@ -94,6 +104,7 @@ const forceMaterialUpdate = (mesh: THREE.InstancedMesh) => {
 export const useSortingRunner = (
   meshRef: RefObject<THREE.InstancedMesh | null>,
   initialArray: number[],
+  algorithmId: SortingAlgorithmId,
 ) => {
   const status = useAlgoRuntimeStore((state) => state.status);
   const speed = useAlgoRuntimeStore((state) => state.speed);
@@ -113,16 +124,20 @@ export const useSortingRunner = (
       active: new THREE.Color(ALGO_THEME.data.active),
       sorted: new THREE.Color(ALGO_THEME.data.sorted),
       critical: new THREE.Color(ALGO_THEME.data.critical),
+      pivot: new THREE.Color(ALGO_THEME.data.pivot),
+      boundary: new THREE.Color(ALGO_THEME.data.boundary),
     }),
     [],
   );
 
   const resetInternalRuntime = () => {
+    const createGenerator = getSortingGeneratorFactory(algorithmId);
+
     arrayCopyRef.current = [...initialArray];
     maxValueRef.current = getSafeMaxValue(initialArray);
     sortedIndicesRef.current = new Set();
     timerRef.current = 0;
-    generatorRef.current = bubbleSortGenerator(arrayCopyRef.current);
+    generatorRef.current = createGenerator(arrayCopyRef.current);
     needsVisualResetRef.current = true;
   };
 
@@ -131,6 +146,8 @@ export const useSortingRunner = (
     if (stepType === "active") return colors.active;
     if (stepType === "sorted") return colors.sorted;
     if (stepType === "critical") return colors.critical;
+    if (stepType === "pivot") return colors.pivot;
+    if (stepType === "boundary") return colors.boundary;
 
     return colors.default;
   };
@@ -174,10 +191,38 @@ export const useSortingRunner = (
     forceMaterialUpdate(mesh);
   };
 
+  /**
+   * Pinta un conjunto de índices con un color específico.
+   */
+  const paintIndices = (
+    mesh: THREE.InstancedMesh,
+    indices: number[] | undefined,
+    total: number,
+    color: THREE.Color,
+  ) => {
+    if (!indices) return;
+
+    indices.forEach((index) => {
+      if (index < 0 || index >= total) return;
+
+      colorHelper.copy(color);
+      paintInstanceColor(mesh, index, colorHelper);
+    });
+  };
+
+  /**
+   * Reinicia el runtime interno cuando cambia:
+   * - el arreglo inicial,
+   * - o el algoritmo seleccionado.
+   */
   useEffect(() => {
     resetInternalRuntime();
-  }, [initialArray]);
+  }, [initialArray, algorithmId]);
 
+  /**
+   * Cuando el runtime global vuelve a idle,
+   * se reinicia también el generador interno.
+   */
   useEffect(() => {
     if (status === "idle") {
       resetInternalRuntime();
@@ -237,12 +282,25 @@ export const useSortingRunner = (
 
       lastStep = result.value;
 
+      /**
+       * active significa que el arreglo cambió físicamente,
+       * por ejemplo, por swap, inserción o desplazamiento.
+       */
       if (lastStep.type === "active") {
         shouldUpdateMatrices = true;
       }
 
+      /**
+       * sorted conserva los índices que ya quedaron ordenados.
+       *
+       * Si el algoritmo manda sortedIndices, usamos esos.
+       * Si no, mantenemos compatibilidad con activeIndices.
+       */
       if (lastStep.type === "sorted") {
-        lastStep.activeIndices.forEach((index) => {
+        const indicesToStore =
+          lastStep.sortedIndices ?? lastStep.activeIndices;
+
+        indicesToStore.forEach((index) => {
           if (index >= 0 && index < total) {
             sortedIndicesRef.current.add(index);
           }
@@ -252,6 +310,9 @@ export const useSortingRunner = (
 
     if (!lastStep) return;
 
+    /**
+     * Primero repintamos todo en default o sorted.
+     */
     for (let index = 0; index < total; index++) {
       const isSorted = sortedIndicesRef.current.has(index);
 
@@ -259,15 +320,28 @@ export const useSortingRunner = (
       paintInstanceColor(mesh, index, colorHelper);
     }
 
+    /**
+     * Luego pintamos el grupo principal según el tipo del paso.
+     */
     const stepColor = getStepColor(lastStep.type);
 
-    lastStep.activeIndices.forEach((index) => {
-      if (index < 0 || index >= total) return;
+    paintIndices(mesh, lastStep.activeIndices, total, stepColor);
 
-      colorHelper.copy(stepColor);
-      paintInstanceColor(mesh, index, colorHelper);
-    });
+    /**
+     * Después pintamos roles específicos.
+     *
+     * Este orden es intencional:
+     * - comparing puede marcar el elemento escaneado.
+     * - boundary puede marcar la frontera de partición.
+     * - pivot se pinta al final para que siempre destaque.
+     */
+    paintIndices(mesh, lastStep.comparingIndices, total, colors.comparing);
+    paintIndices(mesh, lastStep.boundaryIndices, total, colors.boundary);
+    paintIndices(mesh, lastStep.pivotIndices, total, colors.pivot);
 
+    /**
+     * Si hubo cambio físico en el arreglo, actualizamos matrices.
+     */
     if (shouldUpdateMatrices) {
       arrayCopyRef.current.forEach((value, index) => {
         applyBarTransform(

@@ -2,54 +2,55 @@
 // src/shared/types/runtime.types.ts
 
 /**
- * Tipos de orquestación asíncrona para VertexNodes.
+ * RuntimeStatus
  *
- * Este archivo define el idioma común entre:
- * - Algoritmos puros, por ejemplo bubbleSortGenerator.
- * - Runners, por ejemplo useSortingRunner.
- * - Stores de ejecución, por ejemplo useAlgoRuntimeStore.
- *
- * Importante:
- * El algoritmo NO manda todo el arreglo en cada frame.
- * Solo manda el tipo de acción y los índices afectados.
- */
-
-/**
- * Estado global del runtime.
- *
- * idle     → sin iniciar o reiniciado
- * running  → ejecutándose
- * paused   → pausado
- * finished → terminado
+ * Estados globales de reproducción del algoritmo.
  */
 export type RuntimeStatus = "idle" | "running" | "paused" | "finished";
 
 /**
- * Acciones que puede emitir un algoritmo.
+ * AlgoStepType
  *
- * comparing → comparando elementos
- * active    → acción principal, por ejemplo intercambio
- * sorted    → elemento confirmado como ordenado
- * critical  → estado especial de alerta, útil para futuras visualizaciones
+ * Tipos visuales generales que puede emitir un algoritmo.
+ *
+ * Estos tipos no ejecutan nada por sí solos.
+ * useSortingRunner los interpreta para pintar barras y actualizar matrices.
  */
-export type AlgoStepType = "comparing" | "active" | "sorted" | "critical";
+export type AlgoStepType =
+  | "default"
+  | "active"
+  | "comparing"
+  | "sorted"
+  | "critical"
+  | "pivot"
+  | "boundary";
 
 /**
- * Estado visual de un elemento.
+ * AlgoStep
  *
- * default se usa para pintar el estado base,
- * pero normalmente NO lo emite el algoritmo como paso.
+ * Paso visual emitido por un generador de algoritmo.
+ *
+ * activeIndices:
+ * - Mantiene compatibilidad con Bubble Sort, Selection Sort e Insertion Sort.
+ * - Es el grupo principal de índices que se pintan según type.
+ *
+ * pivotIndices:
+ * - Permite pintar pivotes con color propio.
+ *
+ * boundaryIndices:
+ * - Permite pintar fronteras de partición, por ejemplo en Quick Sort.
+ *
+ * comparingIndices:
+ * - Permite diferenciar el elemento comparado del pivote.
+ *
+ * sortedIndices:
+ * - Permite marcar ordenados sin depender solo de activeIndices.
  */
-export type VisualElementStatus = AlgoStepType | "default";
-
-export interface AlgoStep {
-  /**
-   * Tipo de acción que ocurre en este checkpoint.
-   */
+export type AlgoStep = {
   type: AlgoStepType;
-
-  /**
-   * Índices afectados por este paso.
-   */
   activeIndices: number[];
-}
+  pivotIndices?: number[];
+  boundaryIndices?: number[];
+  comparingIndices?: number[];
+  sortedIndices?: number[];
+};

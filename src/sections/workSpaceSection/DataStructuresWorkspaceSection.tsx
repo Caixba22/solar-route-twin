@@ -6,26 +6,24 @@
  *
  * Workspace visual para estructuras de datos.
  *
- * Responsabilidad:
+ * Responsabilidades:
  * - Mostrar las estructuras de datos disponibles en el catálogo.
  * - Agruparlas por categoría.
  * - Permitir seleccionar una estructura.
  * - Mostrar una vista temporal mientras se implementan sus escenas 3D.
  *
  * Importante:
- * - Ya no importa CATALOG_ITEMS ni CATALOG_CATEGORIES directamente.
  * - Usa catalogSelectors.ts para consultar el catálogo.
  * - Si no hay estructuras implementadas todavía, muestra un estado vacío.
  * - isCatalogItemId valida que el valor del select sea un item real.
  */
 
 import {
-  getItemsByDomain,
   getItemsByCategory,
+  getItemsByDomain,
   getVisibleCategoriesByDomain,
   isCatalogItemId,
 } from "../../shared/constants/catalogSelectors";
-
 import { useCatalogSelectionStore } from "../../store/useCatalogSelectionStore";
 
 export const DataStructuresWorkspaceSection = () => {
@@ -33,15 +31,12 @@ export const DataStructuresWorkspaceSection = () => {
     (state) => state.selectedItemId,
   );
 
-  const selectItem = useCatalogSelectionStore(
-    (state) => state.selectItem,
-  );
+  const selectItem = useCatalogSelectionStore((state) => state.selectItem);
 
   /**
-   * Obtiene todos los items pertenecientes al dominio:
-   * "data-structures".
+   * Obtiene todos los items pertenecientes al dominio "data-structures".
    *
-   * Actualmente puede venir vacío porque todavía no has agregado
+   * Actualmente viene vacío porque todavía no has agregado
    * estructuras de datos reales al catálogo.
    */
   const dataStructureItems = getItemsByDomain("data-structures");
@@ -49,8 +44,6 @@ export const DataStructuresWorkspaceSection = () => {
   /**
    * Obtiene solo las categorías de estructuras de datos
    * que ya tienen al menos un item implementado.
-   *
-   * Esto evita mostrar categorías vacías.
    */
   const availableCategories = getVisibleCategoriesByDomain("data-structures");
 
@@ -75,18 +68,18 @@ export const DataStructuresWorkspaceSection = () => {
   };
 
   return (
-    <section className="w-full px-6 pb-32">
-      <div className="mx-auto max-w-7xl rounded-[2.5rem] border border-algo-border bg-surface p-8 shadow-2xl">
-        <div className="mb-8 border-b border-algo-border pb-6">
+    <section id="workspace" className="w-full px-3 pb-24 sm:px-6 sm:pb-32">
+      <div className="mx-auto max-w-7xl rounded-[2rem] border border-algo-border bg-surface p-4 shadow-2xl sm:rounded-[2.5rem] sm:p-8">
+        <div className="mb-6 border-b border-algo-border pb-6 sm:mb-8">
           <p className="font-mono text-xs uppercase tracking-widest text-data-active">
             Data Structures Workspace
           </p>
 
-          <h2 className="mt-2 text-3xl font-black text-text-primary">
+          <h2 className="mt-2 text-2xl font-black text-text-primary sm:text-3xl">
             Estructuras de datos
           </h2>
 
-          <p className="mt-3 max-w-2xl text-text-secondary">
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-text-secondary sm:text-base">
             Selecciona una estructura para visualizar su comportamiento en el
             espacio 3D.
           </p>
@@ -142,7 +135,7 @@ export const DataStructuresWorkspaceSection = () => {
           </div>
 
           {selectedItem && (
-            <div className="mt-4 rounded-2xl border border-algo-border bg-data-background/60 p-5">
+            <div className="mt-4 rounded-2xl border border-algo-border bg-data-background/60 p-4 sm:p-5">
               <h3 className="font-bold text-text-primary">
                 {selectedItem.name}
               </h3>
@@ -154,24 +147,24 @@ export const DataStructuresWorkspaceSection = () => {
           )}
 
           {!hasAvailableItems && (
-            <div className="mt-4 rounded-2xl border border-algo-border bg-data-background/60 p-5">
+            <div className="mt-4 rounded-2xl border border-algo-border bg-data-background/60 p-4 sm:p-5">
               <h3 className="font-bold text-text-primary">
                 Sin estructuras disponibles todavía
               </h3>
 
               <p className="mt-2 text-sm leading-6 text-text-secondary">
-                Este espacio ya está preparado. Cuando agregues items como Array,
-                Stack, Queue o Linked List al catálogo, aparecerán automáticamente
-                en este selector.
+                Este espacio ya está preparado. Cuando agregues items como
+                Array, Stack, Queue o Linked List al catálogo, aparecerán
+                automáticamente en este selector.
               </p>
             </div>
           )}
         </div>
 
-        <div className="mt-8 aspect-video overflow-hidden rounded-[2rem] border border-algo-border bg-data-background">
+        <div className="mt-8 h-[420px] overflow-hidden rounded-[1.5rem] border border-algo-border bg-data-background sm:h-[520px] sm:rounded-[2rem] md:aspect-video md:h-auto">
           <div className="flex h-full items-center justify-center px-6 text-center">
             <div>
-              <p className="text-4xl font-black uppercase tracking-tighter text-text-primary/10 md:text-6xl">
+              <p className="text-3xl font-black uppercase tracking-tighter text-text-primary/10 sm:text-4xl md:text-6xl">
                 {selectedItem?.name ?? "Estructuras de datos"}
               </p>
 

@@ -15,38 +15,36 @@
  *
  * Conexión actual:
  * selectItem() cambia selectedItemId.
- * Si selectedItemId === "bubble-sort", se monta SortingScene.
- * SortingScene usa useSortingRunner.
- * useSortingRunner ejecuta el generador del algoritmo.
+ * Si selectedItemId pertenece a un algoritmo de ordenamiento conectado,
+ * se monta SortingScene.
  *
- * Importante:
- * - Este archivo ya no importa catalogCategories.ts ni catalogItems.ts.
- * - Ahora usa catalogSelectors.ts para consultar el catálogo.
- * - isCatalogItemId valida que el valor del select sea un item real del catálogo.
+ * SortingScene recibe algorithmId y useSortingRunner decide qué generador usar.
  */
 
 import { Canvas } from "@react-three/fiber";
 
+import { SortingScene } from "../../features/algorithms/sorting/scene/SortingScene";
+import type { DataElement } from "../../features/algorithms/sorting/components/SortingBars";
+import { isSortingAlgorithmId } from "../../features/algorithms/sorting/runtime/useSortingRunner";
+
+import { PlaybackControls } from "../../shared/components/ui/PlaybackControls";
+
 import {
-  getItemsByDomain,
   getItemsByCategory,
+  getItemsByDomain,
   getVisibleCategoriesByDomain,
   isCatalogItemId,
 } from "../../shared/constants/catalogSelectors";
 
-import { PlaybackControls } from "../../shared/components/ui/PlaybackControls";
-
-import { useCatalogSelectionStore } from "../../store/useCatalogSelectionStore";
 import { useAlgoRuntimeStore } from "../../store/useAlgoRuntimeStore";
-
-import { SortingScene } from "../../features/algorithms/sorting/scene/SortingScene";
-import type { DataElement } from "../../features/algorithms/sorting/components/SortingBars";
+import { useCatalogSelectionStore } from "../../store/useCatalogSelectionStore";
 
 /**
  * Cantidad inicial de barras para algoritmos de ordenamiento.
  *
- * Por ahora lo usa Bubble Sort, pero después puede reutilizarse
- * para Selection Sort, Insertion Sort, Merge Sort, etc.
+ * Por ahora lo usan:
+ * - Bubble Sort
+ * - Selection Sort
  *
  * Recomendado:
  * - 16 a 24 para visualización clara.
@@ -59,7 +57,7 @@ const SORTING_BAR_COUNT = 24;
  * y lo revuelve usando Fisher-Yates.
  *
  * Fisher-Yates:
- * Algoritmo para mezclar un arreglo de forma uniforme.
+ * algoritmo para mezclar un arreglo de forma uniforme.
  */
 const createShuffledArray = (size: number): number[] => {
   const values = Array.from({ length: size }, (_, index) => index + 1);
@@ -112,8 +110,7 @@ export const AlgorithmsWorkspaceSection = () => {
   );
 
   /**
-   * Obtiene todos los items pertenecientes al dominio:
-   * "algorithms".
+   * Obtiene todos los items pertenecientes al dominio "algorithms".
    *
    * Esto incluye únicamente algoritmos implementados en CATALOG_ITEMS.
    */
@@ -122,15 +119,13 @@ export const AlgorithmsWorkspaceSection = () => {
   /**
    * Obtiene solo las categorías del dominio "algorithms"
    * que tienen al menos un item implementado.
-   *
-   * Así evitamos mostrar categorías vacías en el select.
    */
   const availableCategories = getVisibleCategoriesByDomain("algorithms");
 
   /**
    * Busca el algoritmo seleccionado dentro de los algoritmos disponibles.
    *
-   * Si selectedItemId pertenece a una estructura de datos o está vacío,
+   * Si selectedItemId pertenece a otro dominio o está vacío,
    * selectedItem será undefined.
    */
   const selectedItem = algorithmItems.find(
@@ -169,14 +164,16 @@ export const AlgorithmsWorkspaceSection = () => {
     }
 
     /**
-     * IMPORTANTE:
-     * Este id debe coincidir exactamente con el id definido en catalog.ts.
+     * Si el algoritmo seleccionado pertenece a los algoritmos de ordenamiento
+     * conectados, usamos la misma SortingScene.
      *
-     * Por ahora solo Bubble Sort tiene escena conectada.
-     * Después este bloque se puede volver más genérico para todos
-     * los algoritmos de ordenamiento.
+     * No creamos:
+     * - BubbleSortScene
+     * - SelectionSortScene
+     *
+     * porque el espacio 3D es reutilizable.
      */
-    if (selectedItem.id === "bubble-sort") {
+    if (isSortingAlgorithmId(selectedItem.id)) {
       return (
         <div className="flex h-full w-full flex-col">
           <div className="border-b border-algo-border bg-surface/80 p-3 sm:p-4">
@@ -186,6 +183,7 @@ export const AlgorithmsWorkspaceSection = () => {
           <div className="min-h-0 flex-1">
             <Canvas className="h-full w-full">
               <SortingScene
+                algorithmId={selectedItem.id}
                 data={sortingData}
                 rawArray={SORTING_INITIAL_ARRAY}
               />
@@ -212,7 +210,7 @@ export const AlgorithmsWorkspaceSection = () => {
   };
 
   return (
-    <section className="w-full px-3 pb-24 sm:px-6 sm:pb-32">
+    <section id="workspace" className="w-full px-3 pb-24 sm:px-6 sm:pb-32">
       <div className="mx-auto max-w-7xl rounded-[2rem] border border-algo-border bg-surface p-4 shadow-2xl sm:rounded-[2.5rem] sm:p-8">
         <div className="mb-6 border-b border-algo-border pb-6 sm:mb-8">
           <p className="font-mono text-xs uppercase tracking-widest text-data-comparing">
