@@ -197,6 +197,16 @@ type CatalogItemDefinition = {
  */
 export const CATALOG_ITEMS = [
   {
+    id: "array",
+    name: "Array",
+    type: "data-structure",
+    categoryId: "linear-memory",
+    description:
+      "Estructura de memoria lineal formada por celdas contiguas accesibles mediante índice.",
+    complexity: "Acceso O(1) · búsqueda O(n)",
+    tags: ["memoria lineal", "índices", "celdas"],
+  },
+  {
     id: "bubble-sort",
     name: "Bubble Sort",
     type: "algorithm",

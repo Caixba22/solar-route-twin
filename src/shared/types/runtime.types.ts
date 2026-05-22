@@ -4,17 +4,17 @@
 /**
  * RuntimeStatus
  *
- * Estados globales de reproducción del algoritmo.
+ * Estados globales de reproducción del algoritmo o visualización.
  */
 export type RuntimeStatus = "idle" | "running" | "paused" | "finished";
 
 /**
  * AlgoStepType
  *
- * Tipos visuales generales que puede emitir un algoritmo.
+ * Tipos visuales generales que puede emitir una visualización.
  *
  * Estos tipos no ejecutan nada por sí solos.
- * useSortingRunner los interpreta para pintar barras y actualizar matrices.
+ * Cada runner decide cómo interpretarlos.
  */
 export type AlgoStepType =
   | "default"
@@ -26,25 +26,51 @@ export type AlgoStepType =
   | "boundary";
 
 /**
+ * AlgoStepResult
+ *
+ * Resultado semántico opcional de un paso.
+ *
+ * Se usa para que la interfaz pueda explicar qué ocurrió sin mezclar
+ * lógica visual 3D con texto de UI.
+ */
+export type AlgoStepResult =
+  | "visiting"
+  | "comparing"
+  | "found"
+  | "not-found"
+  | "accessed"
+  | "finished";
+
+/**
  * AlgoStep
  *
- * Paso visual emitido por un generador de algoritmo.
+ * Paso visual emitido por un generador.
  *
  * activeIndices:
- * - Mantiene compatibilidad con Bubble Sort, Selection Sort e Insertion Sort.
- * - Es el grupo principal de índices que se pintan según type.
+ * - Grupo principal de índices afectados.
  *
  * pivotIndices:
  * - Permite pintar pivotes con color propio.
  *
  * boundaryIndices:
- * - Permite pintar fronteras de partición, por ejemplo en Quick Sort.
+ * - Permite pintar límites, rangos o fronteras.
  *
  * comparingIndices:
- * - Permite diferenciar el elemento comparado del pivote.
+ * - Permite diferenciar elementos comparados.
  *
  * sortedIndices:
- * - Permite marcar ordenados sin depender solo de activeIndices.
+ * - Permite marcar elementos finalizados, visitados o confirmados.
+ *
+ * result:
+ * - Describe qué ocurrió de forma semántica.
+ * - Sirve para paneles informativos, mensajes o cambios especiales.
+ *
+ * description:
+ * - Texto breve para explicar el paso actual al usuario.
+ *
+ * currentLabel:
+ * - Etiqueta visual sugerida para el puntero.
+ * - Ejemplo: CURRENT, FOUND, ACCESS.
  */
 export type AlgoStep = {
   type: AlgoStepType;
@@ -53,4 +79,7 @@ export type AlgoStep = {
   boundaryIndices?: number[];
   comparingIndices?: number[];
   sortedIndices?: number[];
+  result?: AlgoStepResult;
+  description?: string;
+  currentLabel?: string;
 };
