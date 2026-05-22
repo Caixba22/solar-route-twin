@@ -16,9 +16,19 @@
  *
  * Conexión actual:
  * - Si selectedItemId es "array", monta LinearMemoryScene.
+ *
+ * Mejora móvil:
+ * - Cuando el usuario presiona Play desde PlaybackControls,
+ *   en móvil se hace scroll hacia el Canvas del array.
+ * - El punto de llegada queda debajo del bloque "Estado de la operación".
+ *
+ * Mejora visual:
+ * - El selector desplegable de estructuras usa el color del dominio
+ *   Estructuras de datos.
+ * - El bloque de estructura seleccionada también usa ese acento visual.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 
 import { LinearMemoryScene } from "../../features/dataStructures/linearMemory/scene/LinearMemoryScene";
@@ -45,6 +55,8 @@ import { useCatalogSelectionStore } from "../../store/useCatalogSelectionStore";
 
 const ARRAY_INITIAL_VALUES = [12, 7, 30, 5, 18, 22, 9, 41];
 
+const ARRAY_RUNTIME_VIEW_ID = "array-runtime-view";
+
 const ARRAY_OPERATION_OPTIONS = [
   {
     id: "traverse",
@@ -61,6 +73,26 @@ const ARRAY_OPERATION_OPTIONS = [
     label: "Acceder por índice",
     description: "Va directamente a la posición indicada.",
   },
+  {
+    id: "update",
+    label: "Actualizar valor",
+    description: "Va directo al índice indicado y reemplaza su valor.",
+  },
+  {
+    id: "push",
+    label: "Agregar al final",
+    description: "Agrega un nuevo valor después del último elemento.",
+  },
+  {
+    id: "insert",
+    label: "Insertar por índice",
+    description: "Inserta un valor y desplaza elementos hacia la derecha.",
+  },
+  {
+    id: "delete",
+    label: "Eliminar por índice",
+    description: "Elimina un valor y desplaza elementos hacia la izquierda.",
+  },
 ] as const satisfies readonly {
   id: ArrayOperationId;
   label: string;
@@ -75,17 +107,17 @@ const ARRAY_LEGEND_ITEMS = [
   },
   {
     label: "Comparando",
-    description: "valor revisado",
+    description: "valor revisado o desplazado",
     colorVar: "var(--algo-data-comparing)",
   },
   {
-    label: "Encontrado",
-    description: "valor localizado",
+    label: "Resultado",
+    description: "operación completada",
     colorVar: "var(--algo-data-sorted)",
   },
   {
-    label: "No encontrado",
-    description: "resultado fallido",
+    label: "Eliminar",
+    description: "posición removida",
     colorVar: "var(--algo-data-critical)",
   },
   {
@@ -94,6 +126,12 @@ const ARRAY_LEGEND_ITEMS = [
     colorVar: "var(--algo-data-boundary)",
   },
 ] as const;
+
+const EDITABLE_CONTROL_CLASS_NAME = [
+  "w-full rounded-xl border border-data-active bg-data-background px-3 py-2",
+  "text-xs font-semibold text-text-primary outline-none transition",
+  "shadow-lg hover:border-data-sorted focus:border-data-sorted",
+].join(" ");
 
 const getInitialSnapshot = (): LinearMemoryRuntimeSnapshot => {
   return {
@@ -116,15 +154,44 @@ const getResultColorVar = (
   return "var(--algo-data-active)";
 };
 
+const clampArrayIndex = (index: number, total: number): number => {
+  if (total <= 0) return 0;
+
+  return Math.max(0, Math.min(index, total - 1));
+};
+
+const clampInsertIndex = (index: number, total: number): number => {
+  return Math.max(0, Math.min(index, total));
+};
+
+const renderEditablePill = () => {
+  return (
+    <span className="rounded-full border border-data-active/70 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-data-active">
+      editable
+    </span>
+  );
+};
+
 export const DataStructuresWorkspaceSection = () => {
+  const [arrayValues, setArrayValues] =
+    useState<number[]>(ARRAY_INITIAL_VALUES);
+
   const [arrayOperationId, setArrayOperationId] =
     useState<ArrayOperationId>("traverse");
 
   const [searchTarget, setSearchTarget] = useState<number>(18);
   const [accessIndex, setAccessIndex] = useState<number>(3);
+  const [updateIndex, setUpdateIndex] = useState<number>(3);
+  const [updateValue, setUpdateValue] = useState<number>(99);
+  const [pushValue, setPushValue] = useState<number>(55);
+  const [insertIndex, setInsertIndex] = useState<number>(2);
+  const [insertValue, setInsertValue] = useState<number>(77);
+  const [deleteIndex, setDeleteIndex] = useState<number>(2);
 
   const [runtimeSnapshot, setRuntimeSnapshot] =
     useState<LinearMemoryRuntimeSnapshot>(getInitialSnapshot);
+
+  const lastCommitKeyRef = useRef<string | null>(null);
 
   const selectedItemId = useCatalogSelectionStore(
     (state) => state.selectedItemId,
@@ -132,6 +199,7 @@ export const DataStructuresWorkspaceSection = () => {
 
   const selectItem = useCatalogSelectionStore((state) => state.selectItem);
 
+  const runtimeStatus = useAlgoRuntimeStore((state) => state.status);
   const resetRuntime = useAlgoRuntimeStore((state) => state.reset);
 
   const dataStructureItems = getItemsByDomain("data-structures");
@@ -153,15 +221,129 @@ export const DataStructuresWorkspaceSection = () => {
       operationId: arrayOperationId,
       searchTarget,
       accessIndex,
+      updateIndex,
+      updateValue,
+      pushValue,
+      insertIndex,
+      insertValue,
+      deleteIndex,
     }),
-    [arrayOperationId, searchTarget, accessIndex],
+    [
+      arrayOperationId,
+      searchTarget,
+      accessIndex,
+      updateIndex,
+      updateValue,
+      pushValue,
+      insertIndex,
+      insertValue,
+      deleteIndex,
+    ],
   );
+
+  /**
+   * Cuando empieza una nueva ejecución, permitimos un nuevo commit.
+   * Esto evita que update/insert/delete se apliquen varias veces por renders.
+   */
+  useEffect(() => {
+    if (runtimeStatus === "running") {
+      lastCommitKeyRef.current = null;
+    }
+  }, [runtimeStatus]);
+
+  /**
+   * Commit de operaciones que sí cambian los datos del array.
+   *
+   * Importante:
+   * - La animación pesada sigue en InstancedMesh/useFrame.
+   * - React solo guarda el estado lógico del array después de terminar.
+   */
+  useEffect(() => {
+    if (runtimeStatus !== "finished") return;
+    if (runtimeSnapshot.result !== "finished") return;
+
+    const canCommit =
+      arrayOperationId === "update" ||
+      arrayOperationId === "push" ||
+      arrayOperationId === "insert" ||
+      arrayOperationId === "delete";
+
+    if (!canCommit) return;
+
+    const commitKey = [
+      arrayOperationId,
+      runtimeSnapshot.activeIndex ?? "none",
+      updateIndex,
+      updateValue,
+      pushValue,
+      insertIndex,
+      insertValue,
+      deleteIndex,
+    ].join(":");
+
+    if (lastCommitKeyRef.current === commitKey) return;
+
+    lastCommitKeyRef.current = commitKey;
+
+    setArrayValues((currentValues) => {
+      if (arrayOperationId === "update") {
+        const safeIndex = clampArrayIndex(updateIndex, currentValues.length);
+
+        if (currentValues[safeIndex] === updateValue) {
+          return currentValues;
+        }
+
+        const nextValues = [...currentValues];
+        nextValues[safeIndex] = updateValue;
+
+        return nextValues;
+      }
+
+      if (arrayOperationId === "push") {
+        return [...currentValues, pushValue];
+      }
+
+      if (arrayOperationId === "insert") {
+        const safeIndex = clampInsertIndex(insertIndex, currentValues.length);
+        const nextValues = [...currentValues];
+
+        nextValues.splice(safeIndex, 0, insertValue);
+
+        return nextValues;
+      }
+
+      if (arrayOperationId === "delete") {
+        if (currentValues.length === 0) return currentValues;
+
+        const safeIndex = clampArrayIndex(deleteIndex, currentValues.length);
+        const nextValues = [...currentValues];
+
+        nextValues.splice(safeIndex, 1);
+
+        return nextValues;
+      }
+
+      return currentValues;
+    });
+  }, [
+    runtimeStatus,
+    runtimeSnapshot,
+    arrayOperationId,
+    updateIndex,
+    updateValue,
+    pushValue,
+    insertIndex,
+    insertValue,
+    deleteIndex,
+  ]);
 
   const handleSelectDataStructure = (itemId: string) => {
     if (!isCatalogItemId(itemId)) return;
 
     resetRuntime();
+    lastCommitKeyRef.current = null;
     setRuntimeSnapshot(getInitialSnapshot());
+    setArrayValues(ARRAY_INITIAL_VALUES);
     selectItem(itemId);
   };
 
@@ -169,6 +351,7 @@ export const DataStructuresWorkspaceSection = () => {
     if (!isArrayOperationId(operationId)) return;
 
     resetRuntime();
+    lastCommitKeyRef.current = null;
     setArrayOperationId(operationId);
   };
 
@@ -178,6 +361,7 @@ export const DataStructuresWorkspaceSection = () => {
     if (!Number.isFinite(numericValue)) return;
 
     resetRuntime();
+    lastCommitKeyRef.current = null;
     setSearchTarget(numericValue);
   };
 
@@ -187,7 +371,74 @@ export const DataStructuresWorkspaceSection = () => {
     if (!Number.isFinite(numericValue)) return;
 
     resetRuntime();
+    lastCommitKeyRef.current = null;
     setAccessIndex(numericValue);
+  };
+
+  const handleUpdateIndexChange = (value: string) => {
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue)) return;
+
+    resetRuntime();
+    lastCommitKeyRef.current = null;
+    setUpdateIndex(numericValue);
+  };
+
+  const handleUpdateValueChange = (value: string) => {
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue)) return;
+
+    resetRuntime();
+    lastCommitKeyRef.current = null;
+    setUpdateValue(numericValue);
+  };
+
+  const handlePushValueChange = (value: string) => {
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue)) return;
+
+    resetRuntime();
+    lastCommitKeyRef.current = null;
+    setPushValue(numericValue);
+  };
+
+  const handleInsertIndexChange = (value: string) => {
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue)) return;
+
+    resetRuntime();
+    lastCommitKeyRef.current = null;
+    setInsertIndex(numericValue);
+  };
+
+  const handleInsertValueChange = (value: string) => {
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue)) return;
+
+    resetRuntime();
+    lastCommitKeyRef.current = null;
+    setInsertValue(numericValue);
+  };
+
+  const handleDeleteIndexChange = (value: string) => {
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue)) return;
+
+    resetRuntime();
+    lastCommitKeyRef.current = null;
+    setDeleteIndex(numericValue);
+  };
+
+  const handleRuntimeSnapshotChange = (
+    snapshot: LinearMemoryRuntimeSnapshot,
+  ) => {
+    setRuntimeSnapshot(snapshot);
   };
 
   const renderStatusBadge = () => {
@@ -266,6 +517,10 @@ export const DataStructuresWorkspaceSection = () => {
             <span className="mt-0.5 block font-bold text-text-primary">
               {runtimeSnapshot.targetValue ??
                 runtimeSnapshot.accessIndex ??
+                runtimeSnapshot.updateValue ??
+                runtimeSnapshot.pushValue ??
+                runtimeSnapshot.insertValue ??
+                runtimeSnapshot.deleteIndex ??
                 "—"}
             </span>
           </div>
@@ -303,89 +558,196 @@ export const DataStructuresWorkspaceSection = () => {
     );
   };
 
+  const renderEditableLabel = (htmlFor: string, label: string) => {
+    return (
+      <label
+        htmlFor={htmlFor}
+        className="mb-1 flex items-center justify-between gap-2 font-mono text-[10px] uppercase tracking-widest text-text-secondary"
+      >
+        <span>{label}</span>
+        {renderEditablePill()}
+      </label>
+    );
+  };
+
+  const renderOperationSpecificControls = () => {
+    if (arrayOperationId === "search") {
+      return (
+        <div>
+          {renderEditableLabel("array-search-target", "Valor a buscar")}
+
+          <input
+            id="array-search-target"
+            type="number"
+            value={searchTarget}
+            onChange={(event) => handleSearchTargetChange(event.target.value)}
+            className={EDITABLE_CONTROL_CLASS_NAME}
+          />
+        </div>
+      );
+    }
+
+    if (arrayOperationId === "access") {
+      return (
+        <div>
+          {renderEditableLabel("array-access-index", "Índice")}
+
+          <input
+            id="array-access-index"
+            type="number"
+            min={0}
+            max={arrayValues.length - 1}
+            value={accessIndex}
+            onChange={(event) => handleAccessIndexChange(event.target.value)}
+            className={EDITABLE_CONTROL_CLASS_NAME}
+          />
+        </div>
+      );
+    }
+
+    if (arrayOperationId === "update") {
+      return (
+        <>
+          <div>
+            {renderEditableLabel("array-update-index", "Actualizar índice")}
+
+            <input
+              id="array-update-index"
+              type="number"
+              min={0}
+              max={arrayValues.length - 1}
+              value={updateIndex}
+              onChange={(event) =>
+                handleUpdateIndexChange(event.target.value)
+              }
+              className={EDITABLE_CONTROL_CLASS_NAME}
+            />
+          </div>
+
+          <div>
+            {renderEditableLabel("array-update-value", "Nuevo valor")}
+
+            <input
+              id="array-update-value"
+              type="number"
+              value={updateValue}
+              onChange={(event) =>
+                handleUpdateValueChange(event.target.value)
+              }
+              className={EDITABLE_CONTROL_CLASS_NAME}
+            />
+          </div>
+        </>
+      );
+    }
+
+    if (arrayOperationId === "push") {
+      return (
+        <div>
+          {renderEditableLabel("array-push-value", "Valor a agregar")}
+
+          <input
+            id="array-push-value"
+            type="number"
+            value={pushValue}
+            onChange={(event) => handlePushValueChange(event.target.value)}
+            className={EDITABLE_CONTROL_CLASS_NAME}
+          />
+        </div>
+      );
+    }
+
+    if (arrayOperationId === "insert") {
+      return (
+        <>
+          <div>
+            {renderEditableLabel("array-insert-index", "Índice de inserción")}
+
+            <input
+              id="array-insert-index"
+              type="number"
+              min={0}
+              max={arrayValues.length}
+              value={insertIndex}
+              onChange={(event) =>
+                handleInsertIndexChange(event.target.value)
+              }
+              className={EDITABLE_CONTROL_CLASS_NAME}
+            />
+          </div>
+
+          <div>
+            {renderEditableLabel("array-insert-value", "Valor a insertar")}
+
+            <input
+              id="array-insert-value"
+              type="number"
+              value={insertValue}
+              onChange={(event) =>
+                handleInsertValueChange(event.target.value)
+              }
+              className={EDITABLE_CONTROL_CLASS_NAME}
+            />
+          </div>
+        </>
+      );
+    }
+
+    if (arrayOperationId === "delete") {
+      return (
+        <div>
+          {renderEditableLabel("array-delete-index", "Índice a eliminar")}
+
+          <input
+            id="array-delete-index"
+            type="number"
+            min={0}
+            max={arrayValues.length - 1}
+            value={deleteIndex}
+            onChange={(event) => handleDeleteIndexChange(event.target.value)}
+            className={EDITABLE_CONTROL_CLASS_NAME}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="rounded-xl border border-algo-border bg-surface/50 px-3 py-2 text-[11px] leading-5 text-text-secondary">
+        Esta operación no necesita parámetros editables. Solo presiona Play.
+      </div>
+    );
+  };
+
   const renderArrayOperationControls = () => {
     if (!selectedItem || selectedItem.id !== "array") return null;
 
     return (
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        <div className="col-span-2 sm:col-span-1">
-          <label
-            htmlFor="array-operation-select"
-            className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-text-secondary"
-          >
-            Operación
-          </label>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div>
+          {renderEditableLabel("array-operation-select", "Operación")}
 
           <select
             id="array-operation-select"
             value={arrayOperationId}
-            onChange={(event) =>
-              handleSelectArrayOperation(event.target.value)
-            }
-            className="w-full rounded-xl border border-algo-border bg-data-background px-3 py-2 text-xs font-semibold text-text-primary outline-none transition focus:border-data-active"
+            onChange={(event) => handleSelectArrayOperation(event.target.value)}
+            className={EDITABLE_CONTROL_CLASS_NAME}
           >
             {ARRAY_OPERATION_OPTIONS.map((operation) => (
-              <option key={operation.id} value={operation.id}>
+              <option
+                key={operation.id}
+                value={operation.id}
+                className="bg-data-background text-text-primary"
+              >
                 {operation.label}
               </option>
             ))}
           </select>
         </div>
 
-        <div>
-          <label
-            htmlFor="array-search-target"
-            className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-text-secondary"
-          >
-            Valor
-          </label>
-
-          <input
-            id="array-search-target"
-            type="number"
-            value={searchTarget}
-            onChange={(event) =>
-              handleSearchTargetChange(event.target.value)
-            }
-            disabled={arrayOperationId !== "search"}
-            className={[
-              "w-full rounded-xl border border-algo-border bg-data-background px-3 py-2 text-xs font-semibold text-text-primary outline-none transition focus:border-data-active",
-              arrayOperationId !== "search"
-                ? "cursor-not-allowed opacity-50"
-                : "",
-            ].join(" ")}
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="array-access-index"
-            className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-text-secondary"
-          >
-            Índice
-          </label>
-
-          <input
-            id="array-access-index"
-            type="number"
-            min={0}
-            max={ARRAY_INITIAL_VALUES.length - 1}
-            value={accessIndex}
-            onChange={(event) =>
-              handleAccessIndexChange(event.target.value)
-            }
-            disabled={arrayOperationId !== "access"}
-            className={[
-              "w-full rounded-xl border border-algo-border bg-data-background px-3 py-2 text-xs font-semibold text-text-primary outline-none transition focus:border-data-active",
-              arrayOperationId !== "access"
-                ? "cursor-not-allowed opacity-50"
-                : "",
-            ].join(" ")}
-          />
-        </div>
+        {renderOperationSpecificControls()}
 
         {selectedArrayOperation && (
-          <p className="col-span-2 text-[11px] leading-5 text-text-secondary sm:col-span-3">
+          <p className="text-[11px] leading-5 text-text-secondary sm:col-span-3">
             {selectedArrayOperation.description}
           </p>
         )}
@@ -410,7 +772,10 @@ export const DataStructuresWorkspaceSection = () => {
           <div className="space-y-2 border-b border-algo-border bg-surface/90 p-2.5 backdrop-blur-md sm:p-3">
             <div className="grid gap-2 xl:grid-cols-[minmax(280px,420px)_minmax(0,1fr)]">
               <div className="rounded-2xl border border-algo-border bg-data-background/60 p-2.5">
-                <PlaybackControls />
+                <PlaybackControls
+                  mobileScrollTargetId={ARRAY_RUNTIME_VIEW_ID}
+                  mobileScrollOffset={20}
+                />
               </div>
 
               <div className="rounded-2xl border border-algo-border bg-data-background/60 p-2.5">
@@ -423,13 +788,17 @@ export const DataStructuresWorkspaceSection = () => {
             </div>
           </div>
 
-          <div className="relative h-[430px] flex-1 sm:h-[520px] md:h-[600px] lg:h-auto lg:min-h-0">
+          <div
+            id={ARRAY_RUNTIME_VIEW_ID}
+            data-runtime-scroll-target="true"
+            className="relative h-[430px] flex-1 scroll-mt-5 sm:h-[520px] md:h-[600px] lg:h-auto lg:min-h-0"
+          >
             <Canvas className="h-full w-full">
               <LinearMemoryScene
                 structureId={selectedItem.id}
-                values={ARRAY_INITIAL_VALUES}
+                values={arrayValues}
                 operationConfig={operationConfig}
-                onRuntimeSnapshotChange={setRuntimeSnapshot}
+                onRuntimeSnapshotChange={handleRuntimeSnapshotChange}
               />
             </Canvas>
 
@@ -494,12 +863,12 @@ export const DataStructuresWorkspaceSection = () => {
         <div className="max-w-xl">
           <label
             htmlFor="data-structure-select"
-            className="mb-3 block text-sm font-bold text-text-primary"
+            className="mb-3 block text-sm font-bold text-data-active"
           >
             Tipo de estructura
           </label>
 
-          <div className="relative">
+          <div className="relative rounded-2xl border border-data-active bg-data-active/10 p-1 shadow-lg">
             <select
               id="data-structure-select"
               value={selectedItem?.id ?? ""}
@@ -508,13 +877,20 @@ export const DataStructuresWorkspaceSection = () => {
               }
               disabled={!hasAvailableItems}
               className={[
-                "w-full appearance-none rounded-2xl border border-algo-border bg-data-background px-5 py-4 pr-12 text-sm font-semibold text-text-primary outline-none transition focus:border-data-active",
+                "w-full appearance-none rounded-xl border border-data-active/60",
+                "bg-data-background px-5 py-4 pr-12 text-sm font-bold text-text-primary",
+                "outline-none transition",
+                "focus:border-data-active focus:ring-2 focus:ring-data-active/30",
                 hasAvailableItems
-                  ? "hover:bg-surface-hover"
+                  ? "cursor-pointer hover:bg-surface-hover"
                   : "cursor-not-allowed opacity-60",
               ].join(" ")}
             >
-              <option value="" disabled>
+              <option
+                value=""
+                disabled
+                className="bg-data-background text-text-secondary"
+              >
                 {hasAvailableItems
                   ? "Selecciona una estructura"
                   : "Aún no hay estructuras implementadas"}
@@ -524,9 +900,17 @@ export const DataStructuresWorkspaceSection = () => {
                 const categoryItems = getItemsByCategory(category.id);
 
                 return (
-                  <optgroup key={category.id} label={category.title}>
+                  <optgroup
+                    key={category.id}
+                    label={category.title}
+                    className="bg-data-background text-data-active"
+                  >
                     {categoryItems.map((item) => (
-                      <option key={item.id} value={item.id}>
+                      <option
+                        key={item.id}
+                        value={item.id}
+                        className="bg-data-background text-text-primary"
+                      >
                         {item.name}
                         {item.complexity ? ` · ${item.complexity}` : ""}
                       </option>
@@ -536,29 +920,37 @@ export const DataStructuresWorkspaceSection = () => {
               })}
             </select>
 
-            <span className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-algo-accent">
+            <span className="pointer-events-none absolute right-6 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-xl bg-data-active/15 text-data-active">
               ▼
             </span>
           </div>
 
           {selectedItem && (
-            <div className="mt-4 rounded-2xl border border-algo-border bg-data-background/60 p-4 sm:p-5">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <h3 className="font-bold text-text-primary">
-                    {selectedItem.name}
-                  </h3>
+            <div className="mt-4 overflow-hidden rounded-2xl border border-data-active/60 bg-data-background/70 shadow-lg">
+              <div className="h-1 w-full bg-data-active" />
 
-                  <p className="mt-2 text-sm leading-6 text-text-secondary">
-                    {selectedItem.description}
-                  </p>
+              <div className="p-4 sm:p-5">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="mb-2 font-mono text-[9px] font-black uppercase tracking-widest text-data-active">
+                      Estructura seleccionada
+                    </p>
+
+                    <h3 className="font-bold text-text-primary">
+                      {selectedItem.name}
+                    </h3>
+
+                    <p className="mt-2 text-sm leading-6 text-text-secondary">
+                      {selectedItem.description}
+                    </p>
+                  </div>
+
+                  {selectedItem.complexity && (
+                    <span className="rounded-full border border-data-active/60 bg-data-active/10 px-3 py-1 font-mono text-[10px] font-bold text-data-active">
+                      {selectedItem.complexity}
+                    </span>
+                  )}
                 </div>
-
-                {selectedItem.complexity && (
-                  <span className="rounded-full border border-algo-border bg-surface px-3 py-1 font-mono text-[10px] text-text-secondary">
-                    {selectedItem.complexity}
-                  </span>
-                )}
               </div>
             </div>
           )}

@@ -13,34 +13,12 @@ export const HeaderSection = () => {
         </span>
       </div>
 
-      <nav className="flex items-center gap-6">
-        <div className="hidden gap-5 text-sm font-medium text-text-secondary md:flex">
-          <a
-            href="#algorithm-menu"
-            className="transition-colors hover:text-data-comparing"
-          >
-            Algoritmos
-          </a>
-
-          <a
-            href="#workspace"
-            className="transition-colors hover:text-algo-accent"
-          >
-            Workspace
-          </a>
-
-          <a
-            href="#"
-            className="transition-colors hover:text-data-sorted"
-          >
-            GitHub
-          </a>
-        </div>
+      <nav className="flex items-center gap-6">   
 
         <div className="h-5 w-px bg-algo-border" />
 
         <span className="rounded-full border border-algo-border bg-surface px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-text-secondary">
-          v1.0.0
+          v1.0
         </span>
       </nav>
     </header>

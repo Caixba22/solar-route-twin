@@ -16,6 +16,10 @@ export const ARRAY_OPERATION_IDS = [
   "traverse",
   "search",
   "access",
+  "update",
+  "push",
+  "insert",
+  "delete",
 ] as const;
 
 /**
@@ -29,13 +33,63 @@ export const ARRAY_OPERATION_IDS = [
  *
  * access:
  * - Accede directamente a una posición por índice.
+ *
+ * update:
+ * - Accede directamente a una posición y actualiza su valor.
+ *
+ * push:
+ * - Agrega un valor al final del array.
+ *
+ * insert:
+ * - Inserta un valor en una posición específica.
+ *
+ * delete:
+ * - Elimina un valor por índice.
  */
 export type ArrayOperationId = (typeof ARRAY_OPERATION_IDS)[number];
 
 export type LinearMemoryOperationConfig = {
   operationId: ArrayOperationId;
+
+  /**
+   * Valor objetivo para búsqueda lineal.
+   */
   searchTarget: number;
+
+  /**
+   * Índice usado para acceso directo.
+   */
   accessIndex: number;
+
+  /**
+   * Índice usado para actualización directa.
+   */
+  updateIndex: number;
+
+  /**
+   * Nuevo valor que se colocará en updateIndex.
+   */
+  updateValue: number;
+
+  /**
+   * Valor que se agregará al final del array.
+   */
+  pushValue: number;
+
+  /**
+   * Índice donde se insertará un nuevo valor.
+   */
+  insertIndex: number;
+
+  /**
+   * Valor que se insertará en insertIndex.
+   */
+  insertValue: number;
+
+  /**
+   * Índice que se eliminará del array.
+   */
+  deleteIndex: number;
 };
 
 /**
@@ -53,6 +107,13 @@ export type LinearMemoryRuntimeSnapshot = {
   activeValue?: number;
   targetValue?: number;
   accessIndex?: number;
+  updateIndex?: number;
+  updateValue?: number;
+  previousValue?: number;
+  pushValue?: number;
+  insertIndex?: number;
+  insertValue?: number;
+  deleteIndex?: number;
   result?: AlgoStepResult;
 };
 

@@ -127,6 +127,10 @@ const getOperationLabel = (
 ): string => {
   if (operationConfig.operationId === "search") return "Buscar valor";
   if (operationConfig.operationId === "access") return "Acceder por índice";
+  if (operationConfig.operationId === "update") return "Actualizar valor";
+  if (operationConfig.operationId === "push") return "Agregar al final";
+  if (operationConfig.operationId === "insert") return "Insertar por índice";
+  if (operationConfig.operationId === "delete") return "Eliminar por índice";
 
   return "Recorrer array";
 };
@@ -154,6 +158,48 @@ const createIdleSnapshot = (
     };
   }
 
+  if (operationConfig.operationId === "update") {
+    return {
+      operationLabel: "Actualizar valor",
+      statusLabel: "En espera",
+      description: `Presiona Play para actualizar array[${operationConfig.updateIndex}] con el valor ${operationConfig.updateValue}.`,
+      updateIndex: operationConfig.updateIndex,
+      updateValue: operationConfig.updateValue,
+      result: "visiting",
+    };
+  }
+
+  if (operationConfig.operationId === "push") {
+    return {
+      operationLabel: "Agregar al final",
+      statusLabel: "En espera",
+      description: `Presiona Play para agregar el valor ${operationConfig.pushValue} al final del array.`,
+      pushValue: operationConfig.pushValue,
+      result: "visiting",
+    };
+  }
+
+  if (operationConfig.operationId === "insert") {
+    return {
+      operationLabel: "Insertar por índice",
+      statusLabel: "En espera",
+      description: `Presiona Play para insertar el valor ${operationConfig.insertValue} en el índice ${operationConfig.insertIndex}.`,
+      insertIndex: operationConfig.insertIndex,
+      insertValue: operationConfig.insertValue,
+      result: "visiting",
+    };
+  }
+
+  if (operationConfig.operationId === "delete") {
+    return {
+      operationLabel: "Eliminar por índice",
+      statusLabel: "En espera",
+      description: `Presiona Play para eliminar el valor ubicado en el índice ${operationConfig.deleteIndex}.`,
+      deleteIndex: operationConfig.deleteIndex,
+      result: "visiting",
+    };
+  }
+
   return {
     operationLabel: "Recorrer array",
     statusLabel: "En espera",
@@ -171,7 +217,9 @@ const createSnapshotFromStep = (
     step.activeIndices.length === 1 ? step.activeIndices[0] : undefined;
 
   const activeValue =
-    activeIndex !== undefined ? values[activeIndex] : undefined;
+    activeIndex !== undefined && activeIndex >= 0 && activeIndex < values.length
+      ? values[activeIndex]
+      : undefined;
 
   const baseSnapshot: LinearMemoryRuntimeSnapshot = {
     operationLabel: getOperationLabel(operationConfig),
@@ -186,6 +234,32 @@ const createSnapshotFromStep = (
     accessIndex:
       operationConfig.operationId === "access"
         ? operationConfig.accessIndex
+        : undefined,
+    updateIndex:
+      operationConfig.operationId === "update"
+        ? operationConfig.updateIndex
+        : undefined,
+    updateValue:
+      operationConfig.operationId === "update"
+        ? operationConfig.updateValue
+        : undefined,
+    previousValue:
+      operationConfig.operationId === "update" ? activeValue : undefined,
+    pushValue:
+      operationConfig.operationId === "push"
+        ? operationConfig.pushValue
+        : undefined,
+    insertIndex:
+      operationConfig.operationId === "insert"
+        ? operationConfig.insertIndex
+        : undefined,
+    insertValue:
+      operationConfig.operationId === "insert"
+        ? operationConfig.insertValue
+        : undefined,
+    deleteIndex:
+      operationConfig.operationId === "delete"
+        ? operationConfig.deleteIndex
         : undefined,
     result: step.result,
   };
@@ -204,6 +278,16 @@ const createSnapshotFromStep = (
     };
   }
 
+  if (
+    step.result === "accessed" &&
+    operationConfig.operationId === "update"
+  ) {
+    return {
+      ...baseSnapshot,
+      statusLabel: "Actualizando",
+    };
+  }
+
   if (step.result === "accessed") {
     return {
       ...baseSnapshot,
@@ -212,6 +296,34 @@ const createSnapshotFromStep = (
   }
 
   if (step.result === "finished") {
+    if (operationConfig.operationId === "update") {
+      return {
+        ...baseSnapshot,
+        statusLabel: "Actualizado",
+      };
+    }
+
+    if (operationConfig.operationId === "push") {
+      return {
+        ...baseSnapshot,
+        statusLabel: "Agregado",
+      };
+    }
+
+    if (operationConfig.operationId === "insert") {
+      return {
+        ...baseSnapshot,
+        statusLabel: "Insertado",
+      };
+    }
+
+    if (operationConfig.operationId === "delete") {
+      return {
+        ...baseSnapshot,
+        statusLabel: "Eliminado",
+      };
+    }
+
     return {
       ...baseSnapshot,
       statusLabel: "Finalizado",
@@ -240,6 +352,7 @@ export const useLinearMemoryRunner = (
   const visitedIndicesRef = useRef<Set<number>>(new Set());
   const timerRef = useRef<number>(0);
   const needsVisualResetRef = useRef<boolean>(true);
+  const previousValuesLengthRef = useRef<number>(values.length);
 
   const colors = useMemo(
     () => ({
@@ -385,10 +498,30 @@ export const useLinearMemoryRunner = (
    * - la estructura,
    * - los valores base,
    * - o la operación seleccionada.
+   *
+   * Solo se reinicia automáticamente cuando el runtime está en idle.
+   * Así no se corta una animación mientras se está ejecutando.
    */
   useEffect(() => {
+    if (status !== "idle") return;
+
     resetInternalRuntime();
-  }, [values, structureId, operationConfig]);
+  }, [values, structureId, operationConfig, status]);
+
+  /**
+   * Si una operación cambia el tamaño del array mientras ya terminó
+   * visualmente, pedimos un repaint del InstancedMesh para que el nuevo
+   * número de celdas se refleje correctamente.
+   */
+  useEffect(() => {
+    const previousLength = previousValuesLengthRef.current;
+
+    previousValuesLengthRef.current = values.length;
+
+    if (status === "finished" && previousLength !== values.length) {
+      needsVisualResetRef.current = true;
+    }
+  }, [values.length, status]);
 
   /**
    * Cuando el runtime global vuelve a idle,
@@ -416,7 +549,10 @@ export const useLinearMemoryRunner = (
      * Esto es importante para:
      * - búsqueda encontrada,
      * - búsqueda no encontrada,
-     * - acceso por índice.
+     * - acceso por índice,
+     * - actualización,
+     * - inserción,
+     * - eliminación.
      */
     if (status === "finished") return;
 

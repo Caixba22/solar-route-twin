@@ -17,23 +17,119 @@
  * - Las transformaciones pesadas se aplican sobre InstancedMesh.
  * - Los colores vienen desde ALGO_THEME.
  * - No guarda estado React para animaciones.
+ *
+ * Corrección visual:
+ * - Se crea una geometría base con vertex color blanco.
+ * - Se inicializa cada instancia con ALGO_THEME.data.default.
+ * - Esto evita que las celdas aparezcan negras antes de que el runner pinte
+ *   los estados de ejecución.
  */
 
-import { forwardRef, useMemo } from "react";
+import {
+  forwardRef,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { Text } from "@react-three/drei";
 import * as THREE from "three";
 
 import { ALGO_THEME } from "../../../../shared/constants/theme";
-import { getLinearCellPosition } from "../utils/linearMemoryGeometry";
+import {
+  applyLinearCellTransform,
+  getLinearCellPosition,
+} from "../utils/linearMemoryGeometry";
 
 interface LinearArrayCellsProps {
   values: number[];
 }
 
+const createLinearCellGeometry = () => {
+  const geometry = new THREE.BoxGeometry(1, 1, 1);
+  const positionAttribute = geometry.getAttribute("position");
+
+  /**
+   * Color blanco como multiplicador neutral.
+   *
+   * Esto permite que instanceColor controle el color real
+   * de cada celda sin oscurecerse.
+   */
+  const vertexColors = new Float32Array(positionAttribute.count * 3);
+
+  for (let index = 0; index < positionAttribute.count; index++) {
+    const offset = index * 3;
+
+    vertexColors[offset] = 1;
+    vertexColors[offset + 1] = 1;
+    vertexColors[offset + 2] = 1;
+  }
+
+  geometry.setAttribute("color", new THREE.BufferAttribute(vertexColors, 3));
+
+  return geometry;
+};
+
+const forceMaterialUpdate = (mesh: THREE.InstancedMesh) => {
+  const materials = Array.isArray(mesh.material)
+    ? mesh.material
+    : [mesh.material];
+
+  materials.forEach((material) => {
+    material.needsUpdate = true;
+  });
+};
+
+const dummy = new THREE.Object3D();
+
 export const LinearArrayCells = forwardRef<
   THREE.InstancedMesh,
   LinearArrayCellsProps
 >(({ values }, ref) => {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+
+  const geometry = useMemo(() => createLinearCellGeometry(), []);
+
+  /**
+   * Exponemos el InstancedMesh real al runner.
+   *
+   * Así useLinearMemoryRunner puede pintar colores,
+   * mover matrices y controlar las instancias sin estado React pesado.
+   */
+  useImperativeHandle(ref, () => meshRef.current as THREE.InstancedMesh);
+
+  /**
+   * Inicializa visualmente las celdas.
+   *
+   * Esto evita que se vean negras antes de que el runner aplique
+   * el primer snapshot visual.
+   */
+  useLayoutEffect(() => {
+    const mesh = meshRef.current;
+
+    if (!mesh) return;
+
+    const total = values.length;
+    const defaultColor = new THREE.Color(ALGO_THEME.data.default);
+
+    mesh.count = total;
+
+    for (let index = 0; index < total; index++) {
+      applyLinearCellTransform(dummy, index, total);
+
+      mesh.setMatrixAt(index, dummy.matrix);
+      mesh.setColorAt(index, defaultColor);
+    }
+
+    mesh.instanceMatrix.needsUpdate = true;
+
+    if (mesh.instanceColor) {
+      mesh.instanceColor.needsUpdate = true;
+    }
+
+    forceMaterialUpdate(mesh);
+  }, [values.length]);
+
   /**
    * Posición de las etiquetas laterales.
    *
@@ -52,15 +148,14 @@ export const LinearArrayCells = forwardRef<
   return (
     <group>
       <instancedMesh
-        ref={ref}
-        args={[undefined, undefined, values.length]}
+        key={values.length}
+        ref={meshRef}
+        args={[geometry, undefined, values.length]}
         frustumCulled={false}
       >
-        <boxGeometry args={[1, 1, 1]} />
-
         <meshStandardMaterial
-          color={ALGO_THEME.data.default}
           vertexColors
+          toneMapped={false}
           roughness={0.28}
           metalness={0.12}
         />

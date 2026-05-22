@@ -19,6 +19,10 @@
  * se monta SortingScene.
  *
  * SortingScene recibe algorithmId y useSortingRunner decide qué generador usar.
+ *
+ * Mejora visual:
+ * - El selector desplegable de algoritmos usa el color del dominio Algoritmos.
+ * - El bloque del algoritmo seleccionado también usa ese acento visual.
  */
 
 import { Canvas } from "@react-three/fiber";
@@ -101,13 +105,9 @@ export const AlgorithmsWorkspaceSection = () => {
     (state) => state.selectedItemId,
   );
 
-  const selectItem = useCatalogSelectionStore(
-    (state) => state.selectItem,
-  );
+  const selectItem = useCatalogSelectionStore((state) => state.selectItem);
 
-  const resetRuntime = useAlgoRuntimeStore(
-    (state) => state.reset,
-  );
+  const resetRuntime = useAlgoRuntimeStore((state) => state.reset);
 
   /**
    * Obtiene todos los items pertenecientes al dominio "algorithms".
@@ -229,25 +229,32 @@ export const AlgorithmsWorkspaceSection = () => {
         <div className="max-w-xl">
           <label
             htmlFor="algorithm-select"
-            className="mb-3 block text-sm font-bold text-text-primary"
+            className="mb-3 block text-sm font-bold text-data-comparing"
           >
             Tipo de algoritmo
           </label>
 
-          <div className="relative">
+          <div className="relative rounded-2xl border border-data-comparing bg-data-comparing/10 p-1 shadow-lg">
             <select
               id="algorithm-select"
-              value={selectedItemId ?? ""}
+              value={selectedItem?.id ?? ""}
               onChange={(event) => handleSelectAlgorithm(event.target.value)}
               disabled={!hasAvailableItems}
               className={[
-                "w-full appearance-none rounded-2xl border border-algo-border bg-data-background px-5 py-4 pr-12 text-sm font-semibold text-text-primary outline-none transition focus:border-data-active",
+                "w-full appearance-none rounded-xl border border-data-comparing/60",
+                "bg-data-background px-5 py-4 pr-12 text-sm font-bold text-text-primary",
+                "outline-none transition",
+                "focus:border-data-comparing focus:ring-2 focus:ring-data-comparing/30",
                 hasAvailableItems
-                  ? "hover:bg-surface-hover"
+                  ? "cursor-pointer hover:bg-surface-hover"
                   : "cursor-not-allowed opacity-60",
               ].join(" ")}
             >
-              <option value="" disabled>
+              <option
+                value=""
+                disabled
+                className="bg-data-background text-text-secondary"
+              >
                 {hasAvailableItems
                   ? "Selecciona un algoritmo"
                   : "Aún no hay algoritmos implementados"}
@@ -257,9 +264,17 @@ export const AlgorithmsWorkspaceSection = () => {
                 const categoryItems = getItemsByCategory(category.id);
 
                 return (
-                  <optgroup key={category.id} label={category.title}>
+                  <optgroup
+                    key={category.id}
+                    label={category.title}
+                    className="bg-data-background text-data-comparing"
+                  >
                     {categoryItems.map((item) => (
-                      <option key={item.id} value={item.id}>
+                      <option
+                        key={item.id}
+                        value={item.id}
+                        className="bg-data-background text-text-primary"
+                      >
                         {item.name}
                         {item.complexity ? ` · ${item.complexity}` : ""}
                       </option>
@@ -269,29 +284,37 @@ export const AlgorithmsWorkspaceSection = () => {
               })}
             </select>
 
-            <span className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-algo-accent">
+            <span className="pointer-events-none absolute right-6 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-xl bg-data-comparing/15 text-data-comparing">
               ▼
             </span>
           </div>
 
           {selectedItem && (
-            <div className="mt-4 rounded-2xl border border-algo-border bg-data-background/60 p-4 sm:p-5">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <h3 className="font-bold text-text-primary">
-                    {selectedItem.name}
-                  </h3>
+            <div className="mt-4 overflow-hidden rounded-2xl border border-data-comparing/60 bg-data-background/70 shadow-lg">
+              <div className="h-1 w-full bg-data-comparing" />
 
-                  <p className="mt-2 text-sm leading-6 text-text-secondary">
-                    {selectedItem.description}
-                  </p>
+              <div className="p-4 sm:p-5">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="mb-2 font-mono text-[9px] font-black uppercase tracking-widest text-data-comparing">
+                      Algoritmo seleccionado
+                    </p>
+
+                    <h3 className="font-bold text-text-primary">
+                      {selectedItem.name}
+                    </h3>
+
+                    <p className="mt-2 text-sm leading-6 text-text-secondary">
+                      {selectedItem.description}
+                    </p>
+                  </div>
+
+                  {selectedItem.complexity && (
+                    <span className="rounded-full border border-data-comparing/60 bg-data-comparing/10 px-3 py-1 font-mono text-[10px] font-bold text-data-comparing">
+                      {selectedItem.complexity}
+                    </span>
+                  )}
                 </div>
-
-                {selectedItem.complexity && (
-                  <span className="rounded-full border border-algo-border bg-surface px-3 py-1 font-mono text-[10px] text-text-secondary">
-                    {selectedItem.complexity}
-                  </span>
-                )}
               </div>
             </div>
           )}
