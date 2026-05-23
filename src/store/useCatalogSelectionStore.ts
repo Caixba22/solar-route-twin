@@ -9,8 +9,20 @@ import type {
 } from "../shared/constants/catalog";
 
 interface CatalogSelectionState {
-  activeDomainId: CatalogDomainId;
+  /**
+   * Dominio activo del workspace.
+   *
+   * Puede ser null para permitir que la app inicie
+   * sin seleccionar Estructuras de datos ni Algoritmos.
+   */
+  activeDomainId: CatalogDomainId | null;
 
+  /**
+   * Item seleccionado dentro del dominio activo.
+   *
+   * Inicia en null porque no queremos seleccionar
+   * ningún algoritmo ni estructura por defecto.
+   */
   selectedItemId: CatalogItemId | null;
 
   selectDomain: (domainId: CatalogDomainId) => void;
@@ -24,17 +36,10 @@ interface CatalogSelectionState {
 
 export const useCatalogSelectionStore = create<CatalogSelectionState>((set) => ({
   /**
-   * Inicia en el dominio de estructuras de datos,
-   * pero sin seleccionar todavía una estructura específica.
+   * Inicio sin selección.
    */
-  activeDomainId: "data-structures",
+  activeDomainId: null,
 
-  /**
-   * No hay item seleccionado al inicio.
-   *
-   * Esto permite que el workspace muestre algo como:
-   * "Selecciona una estructura de datos".
-   */
   selectedItemId: null,
 
   selectDomain: (domainId) =>
@@ -55,7 +60,7 @@ export const useCatalogSelectionStore = create<CatalogSelectionState>((set) => (
 
   clearSelection: () =>
     set({
-      activeDomainId: "data-structures",
+      activeDomainId: null,
       selectedItemId: null,
     }),
 }));

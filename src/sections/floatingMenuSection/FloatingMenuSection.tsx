@@ -1,3 +1,4 @@
+// Ruta:
 // src/sections/floatingMenuSection/FloatingMenuSection.tsx
 
 import { useState } from "react";
@@ -46,9 +47,23 @@ const getAccentClassNames = (accent: CatalogAccent) => {
   return classes[accent];
 };
 
+const NEUTRAL_ACCENT_CLASSES = {
+  dot: "bg-text-secondary",
+  iconBackground: "bg-surface-hover",
+  iconRing: "ring-algo-border",
+  activeBorder: "border-algo-border",
+  activeBackground: "bg-surface-hover/50",
+  activeText: "text-text-primary",
+} as const;
+
 export const FloatingMenuSection = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isMobileMenuVisible, setIsMobileMenuVisible] = useState(false);
+  /**
+   * El menú inicia cerrado.
+   *
+   * Cuando el usuario presiona "Elegir modo",
+   * se muestra el panel directamente con las opciones.
+   */
+  const [isMenuVisible, setIsMenuVisible] = useState(false);
 
   const activeDomainId = useCatalogSelectionStore(
     (state) => state.activeDomainId,
@@ -57,25 +72,20 @@ export const FloatingMenuSection = () => {
   const selectDomain = useCatalogSelectionStore((state) => state.selectDomain);
 
   const activeDomain =
-    FLOATING_MENU_ITEMS.find((domain) => domain.id === activeDomainId) ??
-    FLOATING_MENU_ITEMS[0];
+    activeDomainId === null
+      ? undefined
+      : FLOATING_MENU_ITEMS.find((domain) => domain.id === activeDomainId);
 
-  const activeAccentClasses = getAccentClassNames(
-    activeDomain?.accent ?? "active",
-  );
+  const activeAccentClasses = activeDomain
+    ? getAccentClassNames(activeDomain.accent)
+    : NEUTRAL_ACCENT_CLASSES;
 
-  const showMobileMenu = () => {
-    setIsMobileMenuVisible(true);
-    setIsOpen(true);
+  const showMenu = () => {
+    setIsMenuVisible(true);
   };
 
-  const hideMobileMenu = () => {
-    setIsMobileMenuVisible(false);
-    setIsOpen(false);
-  };
-
-  const handleTogglePanel = () => {
-    setIsOpen((current) => !current);
+  const hideMenu = () => {
+    setIsMenuVisible(false);
   };
 
   const handleSelectDomain = (domainId: CatalogDomainId) => {
@@ -86,46 +96,46 @@ export const FloatingMenuSection = () => {
       block: "start",
     });
 
-    setIsOpen(false);
-    setIsMobileMenuVisible(false);
+    setIsMenuVisible(false);
   };
 
   return (
     <>
-      <button
-        type="button"
-        onClick={showMobileMenu}
-        className={[
-          "pointer-events-auto fixed right-4 top-24 z-[60] sm:hidden",
-          "flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-full",
-          "border border-algo-border bg-surface/90 px-3 py-2",
-          "text-xs font-black uppercase tracking-widest text-text-primary",
-          "shadow-2xl backdrop-blur-xl transition",
-          "hover:bg-surface-hover active:scale-95",
-          isMobileMenuVisible ? "opacity-0 pointer-events-none" : "opacity-100",
-        ].join(" ")}
-        aria-label="Mostrar menú de dominios"
-        title="Mostrar menú"
-      >
-        <span
-          className={[
-            "size-2.5 shrink-0 rounded-full",
-            activeAccentClasses.dot,
-          ].join(" ")}
-        />
-
-        <span className="min-w-0 truncate">
-          {activeDomain?.title ?? "Menú"}
-        </span>
-
-        <span className="shrink-0 text-algo-accent">☰</span>
-      </button>
-
-      {isMobileMenuVisible && (
+      {!isMenuVisible && (
         <button
           type="button"
-          onClick={hideMobileMenu}
-          className="fixed inset-0 z-40 bg-background/10 backdrop-blur-[1px] sm:hidden"
+          onClick={showMenu}
+          className={[
+            "pointer-events-auto fixed right-4 top-24 z-[60] sm:right-6",
+            "flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-full",
+            "border border-algo-border bg-surface/90 px-3 py-2",
+            "text-xs font-black uppercase tracking-widest text-text-primary",
+            "shadow-2xl backdrop-blur-xl transition",
+            "hover:bg-surface-hover active:scale-95",
+          ].join(" ")}
+          aria-label="Mostrar menú de dominios"
+          title="Mostrar menú"
+        >
+          <span
+            className={[
+              "size-2.5 shrink-0 rounded-full",
+              activeAccentClasses.dot,
+            ].join(" ")}
+          />
+
+          <span className="min-w-0 truncate">
+            {activeDomain?.title ?? "Elegir modo"}
+          </span>
+
+          <span className="shrink-0 text-algo-accent">☰</span>
+        </button>
+      )}
+
+      {isMenuVisible && (
+        <button
+          type="button"
+          onClick={hideMenu}
+          className="fixed inset-0 z-40 bg-background/10 backdrop-blur-[1px]"
           aria-label="Cerrar menú de dominios"
           title="Cerrar menú"
         />
@@ -136,30 +146,14 @@ export const FloatingMenuSection = () => {
           "pointer-events-none fixed left-4 right-4 top-24 z-50",
           "transition-all duration-300 ease-out",
           "sm:left-auto sm:right-6 sm:w-80",
-          isMobileMenuVisible
+          isMenuVisible
             ? "translate-y-0 opacity-100"
-            : "-translate-y-[calc(100%+7rem)] opacity-0 sm:translate-y-0 sm:opacity-100",
+            : "-translate-y-[calc(100%+7rem)] opacity-0",
         ].join(" ")}
       >
         <div className="pointer-events-auto overflow-hidden rounded-3xl border border-algo-border bg-surface/90 shadow-2xl backdrop-blur-xl">
           <div className="flex items-stretch">
-            <button
-              type="button"
-              onClick={handleTogglePanel}
-              className={[
-                "flex min-w-0 flex-1 items-center justify-between gap-3",
-                "px-4 py-3 text-left transition sm:px-5 sm:py-4",
-                "hover:bg-surface-hover/80 active:scale-[0.99]",
-                isOpen ? "bg-surface-hover/50" : "",
-              ].join(" ")}
-              aria-expanded={isOpen}
-              aria-controls="floating-domain-panel"
-              aria-label={
-                isOpen
-                  ? "Cerrar opciones de dominios"
-                  : "Abrir opciones de dominios"
-              }
-            >
+            <div className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3 text-left sm:px-5 sm:py-4">
               <div className="flex min-w-0 items-center gap-3">
                 <div
                   className={[
@@ -180,111 +174,98 @@ export const FloatingMenuSection = () => {
                   <p
                     className={[
                       "mt-0.5 truncate text-sm font-black",
-                      activeAccentClasses.activeText,
+                      activeDomain
+                        ? activeAccentClasses.activeText
+                        : "text-text-primary",
                     ].join(" ")}
                   >
-                    {activeDomain?.title ?? "Selecciona un dominio"}
+                    {activeDomain?.title ?? "Selecciona una opción"}
                   </p>
                 </div>
               </div>
-
-              <span
-                className={[
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
-                  "bg-surface-hover text-lg font-black text-algo-accent",
-                  "transition-transform",
-                  isOpen ? "rotate-180" : "rotate-0",
-                ].join(" ")}
-                aria-hidden="true"
-              >
-                ˅
-              </span>
-            </button>
+            </div>
 
             <button
               type="button"
-              onClick={hideMobileMenu}
+              onClick={hideMenu}
               className={[
                 "flex w-12 shrink-0 items-center justify-center border-l border-algo-border",
                 "bg-surface/60 text-xl font-black text-text-secondary transition",
                 "hover:bg-surface-hover hover:text-text-primary active:scale-95",
-                "sm:hidden",
               ].join(" ")}
-              aria-label="Ocultar menú"
-              title="Ocultar menú"
+              aria-label="Cerrar menú"
+              title="Cerrar menú"
             >
               ×
             </button>
           </div>
 
-          {isOpen && (
-            <nav
-              id="floating-domain-panel"
-              className="border-t border-algo-border p-3"
-            >
-              <ul className="flex flex-col gap-2">
-                {FLOATING_MENU_ITEMS.map((domain) => {
-                  const isActive = activeDomainId === domain.id;
-                  const accentClasses = getAccentClassNames(domain.accent);
+          <nav
+            id="floating-domain-panel"
+            className="border-t border-algo-border p-3"
+          >
+            <ul className="flex flex-col gap-2">
+              {FLOATING_MENU_ITEMS.map((domain) => {
+                const isActive = activeDomainId === domain.id;
+                const accentClasses = getAccentClassNames(domain.accent);
 
-                  return (
-                    <li key={domain.id}>
-                      <button
-                        type="button"
-                        onClick={() => handleSelectDomain(domain.id)}
-                        aria-current={isActive ? "page" : undefined}
-                        className={[
-                          "group w-full rounded-2xl border px-4 py-3 text-left transition",
-                          "hover:border-algo-border hover:bg-surface-hover active:scale-[0.99]",
-                          isActive
-                            ? `${accentClasses.activeBorder} ${accentClasses.activeBackground}`
-                            : "border-transparent",
-                        ].join(" ")}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={[
-                              "h-2.5 w-2.5 shrink-0 rounded-full",
-                              accentClasses.dot,
-                              isActive ? "animate-pulse" : "",
-                            ].join(" ")}
-                          />
+                return (
+                  <li key={domain.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectDomain(domain.id)}
+                      aria-current={isActive ? "page" : undefined}
+                      className={[
+                        "group w-full rounded-2xl border px-4 py-3 text-left transition",
+                        "hover:border-algo-border hover:bg-surface-hover active:scale-[0.99]",
+                        isActive
+                          ? `${accentClasses.activeBorder} ${accentClasses.activeBackground}`
+                          : "border-transparent",
+                      ].join(" ")}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={[
+                            "h-2.5 w-2.5 shrink-0 rounded-full",
+                            accentClasses.dot,
+                            isActive ? "animate-pulse" : "",
+                          ].join(" ")}
+                        />
 
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center justify-between gap-2">
-                              <p
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <p
+                              className={[
+                                "truncate text-sm font-black transition group-hover:text-algo-accent",
+                                isActive
+                                  ? accentClasses.activeText
+                                  : "text-text-primary",
+                              ].join(" ")}
+                            >
+                              {domain.title}
+                            </p>
+
+                            {isActive && (
+                              <span
                                 className={[
-                                  "truncate text-sm font-black transition group-hover:text-algo-accent",
-                                  isActive
-                                    ? accentClasses.activeText
-                                    : "text-text-primary",
+                                  "shrink-0 rounded-full border px-2 py-0.5",
+                                  "font-mono text-[8px] font-black uppercase tracking-widest",
+                                  accentClasses.activeBorder,
+                                  accentClasses.activeText,
                                 ].join(" ")}
                               >
-                                {domain.title}
-                              </p>
-
-                              {isActive && (
-                                <span
-                                  className={[
-                                    "shrink-0 rounded-full border px-2 py-0.5",
-                                    "font-mono text-[8px] font-black uppercase tracking-widest",
-                                    accentClasses.activeBorder,
-                                    accentClasses.activeText,
-                                  ].join(" ")}
-                                >
-                                  activo
-                                </span>
-                              )}
-                            </div>
+                                activo
+                              </span>
+                            )}
                           </div>
                         </div>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </nav>
-          )}
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
         </div>
       </aside>
     </>
