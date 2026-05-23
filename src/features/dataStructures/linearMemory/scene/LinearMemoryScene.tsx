@@ -6,22 +6,22 @@
  *
  * Escena 3D reutilizable para estructuras de memoria lineal.
  *
- * Por ahora renderiza:
- * - Array
+ * Rutas visuales:
+ * - Array:
+ *   - usa LinearArrayCells
+ *   - usa useLinearMemoryRunner
  *
- * Después podrá reutilizarse para:
- * - Stack
- * - Queue
- * - Circular Queue
+ * - Stack / Queue / Circular Queue:
+ *   - usan LinearMemoryCells
+ *   - usan useGenericLinearMemoryRunner
  *
- * Ajuste importante:
- * - Para arrays usamos OrthographicCamera porque mantiene las celdas legibles
- *   en móvil y evita que el modelo se vea demasiado lejos.
- * - El contenedor queda abierto al frente para que ninguna cara transparente
- *   tape o corte visualmente las celdas.
+ * Importante:
+ * - No se llaman hooks condicionalmente.
+ * - Cada ruta vive en su propio componente interno.
+ * - Array queda intacto.
  */
 
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, type RefObject } from "react";
 import { useThree } from "@react-three/fiber";
 import { OrbitControls, OrthographicCamera, Text } from "@react-three/drei";
 import * as THREE from "three";
@@ -29,25 +29,221 @@ import * as THREE from "three";
 import { ALGO_THEME } from "../../../../shared/constants/theme";
 
 import type {
-  LinearMemoryOperationConfig,
+  AnyLinearMemoryOperationConfig,
+  ArrayMemoryOperationConfig,
+  CircularQueueMemoryOperationConfig,
+  GenericLinearMemoryOperationConfig,
   LinearMemoryRuntimeSnapshot,
+  LinearMemoryValue,
+  QueueMemoryOperationConfig,
+  StackMemoryOperationConfig,
+} from "../types/linearMemory.types";
+
+import {
+  isArrayOperationId,
+  isCircularQueueOperationId,
+  isQueueOperationId,
+  isStackOperationId,
 } from "../types/linearMemory.types";
 
 import { LinearArrayCells } from "../components/LinearArrayCells";
+import { LinearMemoryCells } from "../components/LinearMemoryCells";
+
+import { useLinearMemoryRunner } from "../runtime/useLinearMemoryRunner";
+import { useGenericLinearMemoryRunner } from "../runtime/useGenericLinearMemoryRunner";
+
+import type {
+  ArrayLinearMemoryStructureId,
+  GenericLinearMemoryStructureId,
+  LinearMemoryStructureId,
+} from "../runtime/linearMemoryRegistry";
 
 import {
-  useLinearMemoryRunner,
-  type LinearMemoryStructureId,
-} from "../runtime/useLinearMemoryRunner";
+  isArrayLinearMemoryStructureId,
+  isGenericLinearMemoryStructureId,
+} from "../runtime/linearMemoryRegistry";
 
 interface LinearMemorySceneProps {
-  values: number[];
+  values: readonly LinearMemoryValue[];
   structureId: LinearMemoryStructureId;
-  operationConfig: LinearMemoryOperationConfig;
+  operationConfig: AnyLinearMemoryOperationConfig;
   onRuntimeSnapshotChange?: (
     snapshot: LinearMemoryRuntimeSnapshot,
   ) => void;
 }
+
+interface LinearMemoryContentProps {
+  currentPointerRef: RefObject<THREE.Group | null>;
+  foundPointerRef: RefObject<THREE.Group | null>;
+  onRuntimeSnapshotChange?: (
+    snapshot: LinearMemoryRuntimeSnapshot,
+  ) => void;
+}
+
+interface ArrayLinearMemoryContentProps extends LinearMemoryContentProps {
+  values: readonly LinearMemoryValue[];
+  structureId: ArrayLinearMemoryStructureId;
+  operationConfig: ArrayMemoryOperationConfig;
+}
+
+interface GenericLinearMemoryContentProps extends LinearMemoryContentProps {
+  values: readonly LinearMemoryValue[];
+  structureId: GenericLinearMemoryStructureId;
+  operationConfig: GenericLinearMemoryOperationConfig;
+}
+
+const isArrayMemoryOperationConfig = (
+  config: AnyLinearMemoryOperationConfig,
+): config is ArrayMemoryOperationConfig => {
+  return isArrayOperationId(config.operationId);
+};
+
+const isStackMemoryOperationConfig = (
+  config: AnyLinearMemoryOperationConfig,
+): config is StackMemoryOperationConfig => {
+  return isStackOperationId(config.operationId) && "pushValue" in config;
+};
+
+const isQueueMemoryOperationConfig = (
+  config: AnyLinearMemoryOperationConfig,
+): config is QueueMemoryOperationConfig => {
+  return isQueueOperationId(config.operationId) && "enqueueValue" in config;
+};
+
+const isCircularQueueMemoryOperationConfig = (
+  config: AnyLinearMemoryOperationConfig,
+): config is CircularQueueMemoryOperationConfig => {
+  return (
+    isCircularQueueOperationId(config.operationId) &&
+    "enqueueValue" in config &&
+    "capacity" in config &&
+    "frontIndex" in config &&
+    "rearIndex" in config &&
+    "size" in config
+  );
+};
+
+const isGenericOperationConfigForStructure = (
+  structureId: GenericLinearMemoryStructureId,
+  config: AnyLinearMemoryOperationConfig,
+): config is GenericLinearMemoryOperationConfig => {
+  if (structureId === "stack") {
+    return isStackMemoryOperationConfig(config);
+  }
+
+  if (structureId === "queue") {
+    return isQueueMemoryOperationConfig(config);
+  }
+
+  return isCircularQueueMemoryOperationConfig(config);
+};
+
+const ArrayLinearMemoryContent = ({
+  values,
+  structureId,
+  operationConfig,
+  currentPointerRef,
+  foundPointerRef,
+  onRuntimeSnapshotChange,
+}: ArrayLinearMemoryContentProps) => {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+
+  const arrayValues = useMemo(
+    () => values.filter((value): value is number => typeof value === "number"),
+    [values],
+  );
+
+  useLinearMemoryRunner(
+    meshRef,
+    currentPointerRef,
+    foundPointerRef,
+    arrayValues,
+    structureId,
+    operationConfig,
+    onRuntimeSnapshotChange,
+  );
+
+  return <LinearArrayCells ref={meshRef} values={arrayValues} />;
+};
+
+const GenericLinearMemoryContent = ({
+  values,
+  structureId,
+  operationConfig,
+  currentPointerRef,
+  foundPointerRef,
+  onRuntimeSnapshotChange,
+}: GenericLinearMemoryContentProps) => {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+
+  const genericValues = useMemo(() => [...values], [values]);
+
+  useGenericLinearMemoryRunner(
+    meshRef,
+    currentPointerRef,
+    foundPointerRef,
+    genericValues,
+    structureId,
+    operationConfig,
+    onRuntimeSnapshotChange,
+  );
+
+  const cellConfig = useMemo(() => {
+    if (structureId === "stack") {
+      return {
+        valueLabel: "DATO",
+        indexLabel: "POSICIÓN",
+        emptyLabel: "—",
+        topIndex:
+          genericValues.length > 0 ? genericValues.length - 1 : undefined,
+        frontIndex: undefined,
+        rearIndex: undefined,
+      };
+    }
+
+    if (structureId === "queue") {
+      return {
+        valueLabel: "DATO",
+        indexLabel: "POSICIÓN",
+        emptyLabel: "—",
+        topIndex: undefined,
+        frontIndex: genericValues.length > 0 ? 0 : undefined,
+        rearIndex:
+          genericValues.length > 0 ? genericValues.length - 1 : undefined,
+      };
+    }
+
+    return {
+      valueLabel: "DATO",
+      indexLabel: "SLOT",
+      emptyLabel: "vacío",
+      topIndex: undefined,
+      frontIndex:
+        "size" in operationConfig && operationConfig.size > 0
+          ? operationConfig.frontIndex
+          : undefined,
+      rearIndex:
+        "size" in operationConfig &&
+        operationConfig.size > 0 &&
+        operationConfig.rearIndex >= 0
+          ? operationConfig.rearIndex
+          : undefined,
+    };
+  }, [genericValues.length, operationConfig, structureId]);
+
+  return (
+    <LinearMemoryCells
+      ref={meshRef}
+      values={genericValues}
+      valueLabel={cellConfig.valueLabel}
+      indexLabel={cellConfig.indexLabel}
+      emptyLabel={cellConfig.emptyLabel}
+      topIndex={cellConfig.topIndex}
+      frontIndex={cellConfig.frontIndex}
+      rearIndex={cellConfig.rearIndex}
+    />
+  );
+};
 
 export const LinearMemoryScene = ({
   values,
@@ -55,8 +251,6 @@ export const LinearMemoryScene = ({
   operationConfig,
   onRuntimeSnapshotChange,
 }: LinearMemorySceneProps) => {
-  const meshRef = useRef<THREE.InstancedMesh>(null);
-
   const currentPointerRef = useRef<THREE.Group>(null);
   const foundPointerRef = useRef<THREE.Group>(null);
 
@@ -75,16 +269,6 @@ export const LinearMemoryScene = ({
   const wallThickness = 0.06;
   const containerCenterY = containerHeight / 2;
 
-  /**
-   * Zoom responsive.
-   *
-   * En OrthographicCamera:
-   * - mayor zoom = modelo más grande.
-   * - menor zoom = modelo más lejano.
-   *
-   * Calculamos el zoom con base en el ancho disponible para que el array
-   * quepa sin verse diminuto.
-   */
   const cameraZoom = useMemo(() => {
     const horizontalMargin = isMobile ? 2.4 : 3.2;
     const zoomByWidth = canvasWidth / (containerWidth + horizontalMargin);
@@ -100,9 +284,6 @@ export const LinearMemoryScene = ({
     return Math.min(Math.max(zoomByWidth, 52), 72);
   }, [canvasWidth, containerWidth, isMobile, isTablet]);
 
-  /**
-   * Cámara más cercana visualmente, pero sin perspectiva extrema.
-   */
   const cameraPosition = useMemo<[number, number, number]>(
     () => (isMobile ? [0, 4.4, 10] : [0, 4.2, 9]),
     [isMobile],
@@ -113,12 +294,6 @@ export const LinearMemoryScene = ({
     [isMobile],
   );
 
-  /**
-   * Contenedor técnico abierto al frente.
-   *
-   * Quitamos la cara frontal para que no parezca que corta o tapa
-   * los textos, punteros y celdas.
-   */
   const containerPanels = useMemo(
     () =>
       [
@@ -176,15 +351,51 @@ export const LinearMemoryScene = ({
     [containerWidth, containerHeight, containerDepth],
   );
 
-  useLinearMemoryRunner(
-    meshRef,
-    currentPointerRef,
-    foundPointerRef,
-    values,
-    structureId,
-    operationConfig,
-    onRuntimeSnapshotChange,
-  );
+  const renderLinearMemoryContent = () => {
+    if (
+      isArrayLinearMemoryStructureId(structureId) &&
+      isArrayMemoryOperationConfig(operationConfig)
+    ) {
+      return (
+        <ArrayLinearMemoryContent
+          values={values}
+          structureId={structureId}
+          operationConfig={operationConfig}
+          currentPointerRef={currentPointerRef}
+          foundPointerRef={foundPointerRef}
+          onRuntimeSnapshotChange={onRuntimeSnapshotChange}
+        />
+      );
+    }
+
+    if (
+      isGenericLinearMemoryStructureId(structureId) &&
+      isGenericOperationConfigForStructure(structureId, operationConfig)
+    ) {
+      return (
+        <GenericLinearMemoryContent
+          values={values}
+          structureId={structureId}
+          operationConfig={operationConfig}
+          currentPointerRef={currentPointerRef}
+          foundPointerRef={foundPointerRef}
+          onRuntimeSnapshotChange={onRuntimeSnapshotChange}
+        />
+      );
+    }
+
+    return (
+      <Text
+        position={[0, 1.4, 0.45]}
+        fontSize={isMobile ? 0.18 : 0.22}
+        color={ALGO_THEME.data.critical}
+        anchorX="center"
+        anchorY="middle"
+      >
+        Configuración incompatible con la estructura seleccionada
+      </Text>
+    );
+  };
 
   return (
     <>
@@ -307,7 +518,7 @@ export const LinearMemoryScene = ({
         </mesh>
       </group>
 
-      <LinearArrayCells ref={meshRef} values={values} />
+      {renderLinearMemoryContent()}
     </>
   );
 };

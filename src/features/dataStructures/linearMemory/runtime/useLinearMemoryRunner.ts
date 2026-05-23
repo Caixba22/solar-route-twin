@@ -40,11 +40,20 @@ import type {
 
 import {
   getLinearMemoryGeneratorFactory,
-  type LinearMemoryStructureId,
+  type ArrayLinearMemoryStructureId,
 } from "./linearMemoryRegistry";
 
-export type { LinearMemoryStructureId } from "./linearMemoryRegistry";
-export { isLinearMemoryStructureId } from "./linearMemoryRegistry";
+export type {
+  ArrayLinearMemoryStructureId,
+  LinearMemoryStructureId,
+  GenericLinearMemoryStructureId,
+} from "./linearMemoryRegistry";
+
+export {
+  isArrayLinearMemoryStructureId,
+  isGenericLinearMemoryStructureId,
+  isLinearMemoryStructureId,
+} from "./linearMemoryRegistry";
 
 const colorHelper = new THREE.Color();
 const dummy = new THREE.Object3D();
@@ -338,7 +347,7 @@ export const useLinearMemoryRunner = (
   currentPointerRef: RefObject<THREE.Group | null>,
   foundPointerRef: RefObject<THREE.Group | null>,
   values: number[],
-  structureId: LinearMemoryStructureId,
+  structureId: ArrayLinearMemoryStructureId,
   operationConfig: LinearMemoryOperationConfig,
   onRuntimeSnapshotChange?: (
     snapshot: LinearMemoryRuntimeSnapshot,

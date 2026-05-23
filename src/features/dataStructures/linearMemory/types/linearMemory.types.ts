@@ -6,11 +6,26 @@
  *
  * Importante:
  * - Estos tipos NO pertenecen al catálogo global.
- * - El catálogo solo dice qué estructura existe: Array.
- * - Aquí definimos qué operaciones internas puede ejecutar esa estructura.
+ * - El catálogo solo dice qué estructuras existen.
+ * - Aquí definimos qué operaciones internas puede ejecutar cada estructura.
  */
 
 import type { AlgoStepResult } from "../../../../shared/types/runtime.types";
+
+/**
+ * Valores visibles en memoria lineal.
+ *
+ * number:
+ * - celda ocupada.
+ *
+ * null:
+ * - celda vacía, usado principalmente en Circular Queue.
+ */
+export type LinearMemoryValue = number | null;
+
+/* -------------------------------------------------------------------------- */
+/* Array                                                                       */
+/* -------------------------------------------------------------------------- */
 
 export const ARRAY_OPERATION_IDS = [
   "traverse",
@@ -22,75 +37,152 @@ export const ARRAY_OPERATION_IDS = [
   "delete",
 ] as const;
 
-/**
- * Operaciones visuales disponibles para Array.
- *
- * traverse:
- * - Recorre el array de izquierda a derecha.
- *
- * search:
- * - Busca un valor comparando celda por celda.
- *
- * access:
- * - Accede directamente a una posición por índice.
- *
- * update:
- * - Accede directamente a una posición y actualiza su valor.
- *
- * push:
- * - Agrega un valor al final del array.
- *
- * insert:
- * - Inserta un valor en una posición específica.
- *
- * delete:
- * - Elimina un valor por índice.
- */
 export type ArrayOperationId = (typeof ARRAY_OPERATION_IDS)[number];
 
-export type LinearMemoryOperationConfig = {
+export type ArrayMemoryOperationConfig = {
   operationId: ArrayOperationId;
 
-  /**
-   * Valor objetivo para búsqueda lineal.
-   */
   searchTarget: number;
-
-  /**
-   * Índice usado para acceso directo.
-   */
   accessIndex: number;
 
-  /**
-   * Índice usado para actualización directa.
-   */
   updateIndex: number;
-
-  /**
-   * Nuevo valor que se colocará en updateIndex.
-   */
   updateValue: number;
 
-  /**
-   * Valor que se agregará al final del array.
-   */
   pushValue: number;
 
-  /**
-   * Índice donde se insertará un nuevo valor.
-   */
   insertIndex: number;
-
-  /**
-   * Valor que se insertará en insertIndex.
-   */
   insertValue: number;
 
-  /**
-   * Índice que se eliminará del array.
-   */
   deleteIndex: number;
 };
+
+/**
+ * Alias conservado para NO romper lo que ya funciona con Array.
+ *
+ * El runner actual de Array puede seguir usando:
+ * LinearMemoryOperationConfig
+ */
+export type LinearMemoryOperationConfig = ArrayMemoryOperationConfig;
+
+/* -------------------------------------------------------------------------- */
+/* Stack                                                                       */
+/* -------------------------------------------------------------------------- */
+
+export const STACK_OPERATION_IDS = [
+  "traverse",
+  "push",
+  "pop",
+  "peek",
+  "is-empty",
+] as const;
+
+export type StackOperationId = (typeof STACK_OPERATION_IDS)[number];
+
+export type StackMemoryOperationConfig = {
+  operationId: StackOperationId;
+
+  /**
+   * Valor que se agrega en push().
+   */
+  pushValue: number;
+};
+
+/* -------------------------------------------------------------------------- */
+/* Queue                                                                       */
+/* -------------------------------------------------------------------------- */
+
+export const QUEUE_OPERATION_IDS = [
+  "traverse",
+  "enqueue",
+  "dequeue",
+  "front",
+  "rear",
+  "is-empty",
+] as const;
+
+export type QueueOperationId = (typeof QUEUE_OPERATION_IDS)[number];
+
+export type QueueMemoryOperationConfig = {
+  operationId: QueueOperationId;
+
+  /**
+   * Valor que se agrega en enqueue().
+   */
+  enqueueValue: number;
+};
+
+/* -------------------------------------------------------------------------- */
+/* Circular Queue                                                              */
+/* -------------------------------------------------------------------------- */
+
+export type CircularQueueSlot = number | null;
+
+export const CIRCULAR_QUEUE_OPERATION_IDS = [
+  "traverse",
+  "enqueue",
+  "dequeue",
+  "front",
+  "rear",
+  "is-empty",
+  "is-full",
+] as const;
+
+export type CircularQueueOperationId =
+  (typeof CIRCULAR_QUEUE_OPERATION_IDS)[number];
+
+export type CircularQueueMemoryOperationConfig = {
+  operationId: CircularQueueOperationId;
+
+  /**
+   * Valor que se agrega en enqueue().
+   */
+  enqueueValue: number;
+
+  /**
+   * Capacidad física de la cola circular.
+   */
+  capacity: number;
+
+  /**
+   * Índice físico de FRONT.
+   */
+  frontIndex: number;
+
+  /**
+   * Índice físico de REAR.
+   */
+  rearIndex: number;
+
+  /**
+   * Cantidad de elementos ocupados.
+   */
+  size: number;
+};
+
+/* -------------------------------------------------------------------------- */
+/* Configuraciones genéricas                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Configuración para las nuevas estructuras que usarán LinearMemoryCells.
+ *
+ * No incluye Array porque Array conserva su flujo actual.
+ */
+export type GenericLinearMemoryOperationConfig =
+  | StackMemoryOperationConfig
+  | QueueMemoryOperationConfig
+  | CircularQueueMemoryOperationConfig;
+
+/**
+ * Configuración total posible si más adelante necesitas una unión completa.
+ */
+export type AnyLinearMemoryOperationConfig =
+  | ArrayMemoryOperationConfig
+  | GenericLinearMemoryOperationConfig;
+
+/* -------------------------------------------------------------------------- */
+/* Snapshot                                                                    */
+/* -------------------------------------------------------------------------- */
 
 /**
  * Snapshot ligero para mostrar información textual en la UI.
@@ -103,25 +195,63 @@ export type LinearMemoryRuntimeSnapshot = {
   operationLabel: string;
   statusLabel: string;
   description: string;
+
   activeIndex?: number;
-  activeValue?: number;
+  activeValue?: number | null;
+
   targetValue?: number;
+
   accessIndex?: number;
+
   updateIndex?: number;
   updateValue?: number;
-  previousValue?: number;
+  previousValue?: number | null;
+
   pushValue?: number;
+
   insertIndex?: number;
   insertValue?: number;
+
   deleteIndex?: number;
+
+  enqueueValue?: number;
+
+  topIndex?: number;
+  frontIndex?: number;
+  rearIndex?: number;
+
+  capacity?: number;
+  size?: number;
+
   result?: AlgoStepResult;
 };
 
-/**
- * Valida si un string pertenece a las operaciones disponibles del array.
- */
+/* -------------------------------------------------------------------------- */
+/* Type guards                                                                 */
+/* -------------------------------------------------------------------------- */
+
 export const isArrayOperationId = (
   value: string,
 ): value is ArrayOperationId => {
   return ARRAY_OPERATION_IDS.includes(value as ArrayOperationId);
+};
+
+export const isStackOperationId = (
+  value: string,
+): value is StackOperationId => {
+  return STACK_OPERATION_IDS.includes(value as StackOperationId);
+};
+
+export const isQueueOperationId = (
+  value: string,
+): value is QueueOperationId => {
+  return QUEUE_OPERATION_IDS.includes(value as QueueOperationId);
+};
+
+export const isCircularQueueOperationId = (
+  value: string,
+): value is CircularQueueOperationId => {
+  return CIRCULAR_QUEUE_OPERATION_IDS.includes(
+    value as CircularQueueOperationId,
+  );
 };

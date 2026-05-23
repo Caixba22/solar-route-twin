@@ -6,39 +6,38 @@
  *
  * Workspace visual para estructuras de datos.
  *
- * Responsabilidades:
- * - Mostrar las estructuras de datos disponibles en el catálogo.
- * - Agruparlas por categoría.
- * - Permitir seleccionar una estructura.
- * - Montar la escena 3D correspondiente.
- * - Mostrar controles internos de operación para estructuras como Array.
- * - Mantener diseño responsivo en móvil, tablet y escritorio.
+ * Ahora soporta:
+ * - Array
+ * - Stack
+ * - Queue
+ * - Circular Queue
  *
- * Conexión actual:
- * - Si selectedItemId es "array", monta LinearMemoryScene.
- *
- * Mejora móvil:
- * - Cuando el usuario presiona Play desde PlaybackControls,
- *   en móvil se hace scroll hacia el Canvas del array.
- * - El punto de llegada queda debajo del bloque "Estado de la operación".
- *
- * Mejora visual:
- * - El selector desplegable de estructuras usa el color del dominio
- *   Estructuras de datos.
- * - El bloque de estructura seleccionada también usa ese acento visual.
+ * Importante:
+ * - Array conserva su flujo actual.
+ * - Stack, Queue y Circular Queue usan LinearMemoryCells + useGenericLinearMemoryRunner.
+ * - Los commits de datos se hacen aquí, no dentro del runner.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 
 import { LinearMemoryScene } from "../../features/dataStructures/linearMemory/scene/LinearMemoryScene";
-import { isLinearMemoryStructureId } from "../../features/dataStructures/linearMemory/runtime/useLinearMemoryRunner";
+
+import { isLinearMemoryStructureId } from "../../features/dataStructures/linearMemory/runtime/linearMemoryRegistry";
 
 import {
   isArrayOperationId,
+  isCircularQueueOperationId,
+  isQueueOperationId,
+  isStackOperationId,
+  type AnyLinearMemoryOperationConfig,
   type ArrayOperationId,
-  type LinearMemoryOperationConfig,
+  type CircularQueueOperationId,
+  type CircularQueueSlot,
   type LinearMemoryRuntimeSnapshot,
+  type LinearMemoryValue,
+  type QueueOperationId,
+  type StackOperationId,
 } from "../../features/dataStructures/linearMemory/types/linearMemory.types";
 
 import { PlaybackControls } from "../../shared/components/ui/PlaybackControls";
@@ -54,8 +53,18 @@ import { useAlgoRuntimeStore } from "../../store/useAlgoRuntimeStore";
 import { useCatalogSelectionStore } from "../../store/useCatalogSelectionStore";
 
 const ARRAY_INITIAL_VALUES = [12, 7, 30, 5, 18, 22, 9, 41];
+const STACK_INITIAL_VALUES = [12, 7, 30];
+const QUEUE_INITIAL_VALUES = [12, 7, 30];
 
-const ARRAY_RUNTIME_VIEW_ID = "array-runtime-view";
+const CIRCULAR_QUEUE_INITIAL_STATE = {
+  slots: [40, null, null, 12, 18] as CircularQueueSlot[],
+  capacity: 5,
+  size: 3,
+  frontIndex: 3,
+  rearIndex: 0,
+};
+
+const LINEAR_MEMORY_RUNTIME_VIEW_ID = "linear-memory-runtime-view";
 
 const ARRAY_OPERATION_OPTIONS = [
   {
@@ -99,7 +108,118 @@ const ARRAY_OPERATION_OPTIONS = [
   description: string;
 }[];
 
-const ARRAY_LEGEND_ITEMS = [
+const STACK_OPERATION_OPTIONS = [
+  {
+    id: "traverse",
+    label: "Recorrer pila",
+    description: "Recorre la pila desde TOP hacia la base.",
+  },
+  {
+    id: "push",
+    label: "Apilar",
+    description: "Agrega un nuevo valor sobre el TOP.",
+  },
+  {
+    id: "pop",
+    label: "Desapilar",
+    description: "Retira el elemento ubicado en TOP.",
+  },
+  {
+    id: "peek",
+    label: "Consultar TOP",
+    description: "Consulta el valor superior sin retirarlo.",
+  },
+  {
+    id: "is-empty",
+    label: "Verificar si está vacía",
+    description: "Comprueba si la pila contiene elementos.",
+  },
+] as const satisfies readonly {
+  id: StackOperationId;
+  label: string;
+  description: string;
+}[];
+
+const QUEUE_OPERATION_OPTIONS = [
+  {
+    id: "traverse",
+    label: "Recorrer cola",
+    description: "Recorre la cola desde FRONT hacia REAR.",
+  },
+  {
+    id: "enqueue",
+    label: "Encolar",
+    description: "Agrega un nuevo valor al final de la cola.",
+  },
+  {
+    id: "dequeue",
+    label: "Desencolar",
+    description: "Retira el elemento ubicado en FRONT.",
+  },
+  {
+    id: "front",
+    label: "Consultar FRONT",
+    description: "Consulta el primer elemento sin retirarlo.",
+  },
+  {
+    id: "rear",
+    label: "Consultar REAR",
+    description: "Consulta el último elemento sin retirarlo.",
+  },
+  {
+    id: "is-empty",
+    label: "Verificar si está vacía",
+    description: "Comprueba si la cola contiene elementos.",
+  },
+] as const satisfies readonly {
+  id: QueueOperationId;
+  label: string;
+  description: string;
+}[];
+
+const CIRCULAR_QUEUE_OPERATION_OPTIONS = [
+  {
+    id: "traverse",
+    label: "Recorrer cola circular",
+    description: "Recorre la cola en orden FIFO usando lógica circular.",
+  },
+  {
+    id: "enqueue",
+    label: "Encolar",
+    description: "Agrega un valor en la siguiente posición circular disponible.",
+  },
+  {
+    id: "dequeue",
+    label: "Desencolar",
+    description: "Retira el elemento ubicado en FRONT.",
+  },
+  {
+    id: "front",
+    label: "Consultar FRONT",
+    description: "Consulta el primer elemento sin retirarlo.",
+  },
+  {
+    id: "rear",
+    label: "Consultar REAR",
+    description: "Consulta el último elemento sin retirarlo.",
+  },
+  {
+    id: "is-empty",
+    label: "Verificar si está vacía",
+    description: "Comprueba si la cola circular está vacía.",
+  },
+  {
+    id: "is-full",
+    label: "Verificar si está llena",
+    description: "Comprueba si la cola circular alcanzó su capacidad.",
+  },
+] as const satisfies readonly {
+  id: CircularQueueOperationId;
+  label: string;
+  description: string;
+}[];
+
+const LINEAR_MEMORY_LEGEND_ITEMS = [
   {
     label: "Actual",
     description: "posición activa",
@@ -135,9 +255,9 @@ const EDITABLE_CONTROL_CLASS_NAME = [
 
 const getInitialSnapshot = (): LinearMemoryRuntimeSnapshot => {
   return {
-    operationLabel: "Recorrer array",
+    operationLabel: "Estructura lineal",
     statusLabel: "En espera",
-    description: "Presiona Play para recorrer el array de izquierda a derecha.",
+    description: "Selecciona una operación y presiona Play.",
     result: "visiting",
   };
 };
@@ -164,6 +284,12 @@ const clampInsertIndex = (index: number, total: number): number => {
   return Math.max(0, Math.min(index, total));
 };
 
+const normalizeCircularIndex = (index: number, capacity: number): number => {
+  if (capacity <= 0) return 0;
+
+  return ((index % capacity) + capacity) % capacity;
+};
+
 const renderEditablePill = () => {
   return (
     <span className="rounded-full border border-data-active/70 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-data-active">
@@ -176,17 +302,41 @@ export const DataStructuresWorkspaceSection = () => {
   const [arrayValues, setArrayValues] =
     useState<number[]>(ARRAY_INITIAL_VALUES);
 
+  const [stackValues, setStackValues] =
+    useState<number[]>(STACK_INITIAL_VALUES);
+
+  const [queueValues, setQueueValues] =
+    useState<number[]>(QUEUE_INITIAL_VALUES);
+
+  const [circularQueueState, setCircularQueueState] = useState(
+    CIRCULAR_QUEUE_INITIAL_STATE,
+  );
+
   const [arrayOperationId, setArrayOperationId] =
     useState<ArrayOperationId>("traverse");
+
+  const [stackOperationId, setStackOperationId] =
+    useState<StackOperationId>("traverse");
+
+  const [queueOperationId, setQueueOperationId] =
+    useState<QueueOperationId>("traverse");
+
+  const [circularQueueOperationId, setCircularQueueOperationId] =
+    useState<CircularQueueOperationId>("traverse");
 
   const [searchTarget, setSearchTarget] = useState<number>(18);
   const [accessIndex, setAccessIndex] = useState<number>(3);
   const [updateIndex, setUpdateIndex] = useState<number>(3);
   const [updateValue, setUpdateValue] = useState<number>(99);
-  const [pushValue, setPushValue] = useState<number>(55);
+  const [arrayPushValue, setArrayPushValue] = useState<number>(55);
   const [insertIndex, setInsertIndex] = useState<number>(2);
   const [insertValue, setInsertValue] = useState<number>(77);
   const [deleteIndex, setDeleteIndex] = useState<number>(2);
+
+  const [stackPushValue, setStackPushValue] = useState<number>(44);
+  const [queueEnqueueValue, setQueueEnqueueValue] = useState<number>(44);
+  const [circularQueueEnqueueValue, setCircularQueueEnqueueValue] =
+    useState<number>(44);
 
   const [runtimeSnapshot, setRuntimeSnapshot] =
     useState<LinearMemoryRuntimeSnapshot>(getInitialSnapshot);
@@ -203,12 +353,13 @@ export const DataStructuresWorkspaceSection = () => {
   const resetRuntime = useAlgoRuntimeStore((state) => state.reset);
 
   const dataStructureItems = getItemsByDomain("data-structures");
-
   const availableCategories = getVisibleCategoriesByDomain("data-structures");
 
   const selectedItem = dataStructureItems.find(
     (item) => item.id === selectedItemId,
   );
+
+  const selectedStructureId = selectedItem?.id as string | undefined;
 
   const hasAvailableItems = dataStructureItems.length > 0;
 
@@ -216,223 +367,347 @@ export const DataStructuresWorkspaceSection = () => {
     (operation) => operation.id === arrayOperationId,
   );
 
-  const operationConfig = useMemo<LinearMemoryOperationConfig>(
-    () => ({
+  const selectedStackOperation = STACK_OPERATION_OPTIONS.find(
+    (operation) => operation.id === stackOperationId,
+  );
+
+  const selectedQueueOperation = QUEUE_OPERATION_OPTIONS.find(
+    (operation) => operation.id === queueOperationId,
+  );
+
+  const selectedCircularQueueOperation =
+    CIRCULAR_QUEUE_OPERATION_OPTIONS.find(
+      (operation) => operation.id === circularQueueOperationId,
+    );
+
+  const selectedLinearValues = useMemo<readonly LinearMemoryValue[]>(() => {
+    if (selectedStructureId === "stack") return stackValues;
+    if (selectedStructureId === "queue") return queueValues;
+    if (selectedStructureId === "circular-queue") {
+      return circularQueueState.slots;
+    }
+
+    return arrayValues;
+  }, [
+    selectedStructureId,
+    arrayValues,
+    stackValues,
+    queueValues,
+    circularQueueState.slots,
+  ]);
+
+  const operationConfig = useMemo<AnyLinearMemoryOperationConfig>(() => {
+    if (selectedStructureId === "stack") {
+      return {
+        operationId: stackOperationId,
+        pushValue: stackPushValue,
+      };
+    }
+
+    if (selectedStructureId === "queue") {
+      return {
+        operationId: queueOperationId,
+        enqueueValue: queueEnqueueValue,
+      };
+    }
+
+    if (selectedStructureId === "circular-queue") {
+      return {
+        operationId: circularQueueOperationId,
+        enqueueValue: circularQueueEnqueueValue,
+        capacity: circularQueueState.capacity,
+        frontIndex: circularQueueState.frontIndex,
+        rearIndex: circularQueueState.rearIndex,
+        size: circularQueueState.size,
+      };
+    }
+
+    return {
       operationId: arrayOperationId,
       searchTarget,
       accessIndex,
       updateIndex,
       updateValue,
-      pushValue,
+      pushValue: arrayPushValue,
       insertIndex,
       insertValue,
       deleteIndex,
-    }),
-    [
-      arrayOperationId,
-      searchTarget,
-      accessIndex,
-      updateIndex,
-      updateValue,
-      pushValue,
-      insertIndex,
-      insertValue,
-      deleteIndex,
-    ],
-  );
+    };
+  }, [
+    selectedStructureId,
+    stackOperationId,
+    stackPushValue,
+    queueOperationId,
+    queueEnqueueValue,
+    circularQueueOperationId,
+    circularQueueEnqueueValue,
+    circularQueueState.capacity,
+    circularQueueState.frontIndex,
+    circularQueueState.rearIndex,
+    circularQueueState.size,
+    arrayOperationId,
+    searchTarget,
+    accessIndex,
+    updateIndex,
+    updateValue,
+    arrayPushValue,
+    insertIndex,
+    insertValue,
+    deleteIndex,
+  ]);
 
-  /**
-   * Cuando empieza una nueva ejecución, permitimos un nuevo commit.
-   * Esto evita que update/insert/delete se apliquen varias veces por renders.
-   */
   useEffect(() => {
     if (runtimeStatus === "running") {
       lastCommitKeyRef.current = null;
     }
   }, [runtimeStatus]);
 
-  /**
-   * Commit de operaciones que sí cambian los datos del array.
-   *
-   * Importante:
-   * - La animación pesada sigue en InstancedMesh/useFrame.
-   * - React solo guarda el estado lógico del array después de terminar.
-   */
   useEffect(() => {
     if (runtimeStatus !== "finished") return;
     if (runtimeSnapshot.result !== "finished") return;
 
-    const canCommit =
-      arrayOperationId === "update" ||
-      arrayOperationId === "push" ||
-      arrayOperationId === "insert" ||
-      arrayOperationId === "delete";
-
-    if (!canCommit) return;
-
     const commitKey = [
+      selectedStructureId ?? "none",
       arrayOperationId,
+      stackOperationId,
+      queueOperationId,
+      circularQueueOperationId,
       runtimeSnapshot.activeIndex ?? "none",
       updateIndex,
       updateValue,
-      pushValue,
+      arrayPushValue,
       insertIndex,
       insertValue,
       deleteIndex,
+      stackPushValue,
+      queueEnqueueValue,
+      circularQueueEnqueueValue,
+      circularQueueState.frontIndex,
+      circularQueueState.rearIndex,
+      circularQueueState.size,
     ].join(":");
 
     if (lastCommitKeyRef.current === commitKey) return;
 
     lastCommitKeyRef.current = commitKey;
 
-    setArrayValues((currentValues) => {
-      if (arrayOperationId === "update") {
-        const safeIndex = clampArrayIndex(updateIndex, currentValues.length);
+    if (selectedStructureId === "array") {
+      const canCommit =
+        arrayOperationId === "update" ||
+        arrayOperationId === "push" ||
+        arrayOperationId === "insert" ||
+        arrayOperationId === "delete";
 
-        if (currentValues[safeIndex] === updateValue) {
-          return currentValues;
+      if (!canCommit) return;
+
+      setArrayValues((currentValues) => {
+        if (arrayOperationId === "update") {
+          const safeIndex = clampArrayIndex(updateIndex, currentValues.length);
+
+          if (currentValues[safeIndex] === updateValue) {
+            return currentValues;
+          }
+
+          const nextValues = [...currentValues];
+          nextValues[safeIndex] = updateValue;
+
+          return nextValues;
         }
 
-        const nextValues = [...currentValues];
-        nextValues[safeIndex] = updateValue;
+        if (arrayOperationId === "push") {
+          return [...currentValues, arrayPushValue];
+        }
 
-        return nextValues;
+        if (arrayOperationId === "insert") {
+          const safeIndex = clampInsertIndex(insertIndex, currentValues.length);
+          const nextValues = [...currentValues];
+
+          nextValues.splice(safeIndex, 0, insertValue);
+
+          return nextValues;
+        }
+
+        if (arrayOperationId === "delete") {
+          if (currentValues.length === 0) return currentValues;
+
+          const safeIndex = clampArrayIndex(deleteIndex, currentValues.length);
+          const nextValues = [...currentValues];
+
+          nextValues.splice(safeIndex, 1);
+
+          return nextValues;
+        }
+
+        return currentValues;
+      });
+
+      return;
+    }
+
+    if (selectedStructureId === "stack") {
+      if (stackOperationId === "push") {
+        setStackValues((currentValues) => [
+          ...currentValues,
+          stackPushValue,
+        ]);
       }
 
-      if (arrayOperationId === "push") {
-        return [...currentValues, pushValue];
+      if (stackOperationId === "pop") {
+        setStackValues((currentValues) => currentValues.slice(0, -1));
       }
 
-      if (arrayOperationId === "insert") {
-        const safeIndex = clampInsertIndex(insertIndex, currentValues.length);
-        const nextValues = [...currentValues];
+      return;
+    }
 
-        nextValues.splice(safeIndex, 0, insertValue);
-
-        return nextValues;
+    if (selectedStructureId === "queue") {
+      if (queueOperationId === "enqueue") {
+        setQueueValues((currentValues) => [
+          ...currentValues,
+          queueEnqueueValue,
+        ]);
       }
 
-      if (arrayOperationId === "delete") {
-        if (currentValues.length === 0) return currentValues;
-
-        const safeIndex = clampArrayIndex(deleteIndex, currentValues.length);
-        const nextValues = [...currentValues];
-
-        nextValues.splice(safeIndex, 1);
-
-        return nextValues;
+      if (queueOperationId === "dequeue") {
+        setQueueValues((currentValues) => currentValues.slice(1));
       }
 
-      return currentValues;
-    });
+      return;
+    }
+
+    if (selectedStructureId === "circular-queue") {
+      if (circularQueueOperationId === "enqueue") {
+        setCircularQueueState((currentState) => {
+          if (currentState.size >= currentState.capacity) {
+            return currentState;
+          }
+
+          const nextSlots = [...currentState.slots];
+          const nextRearIndex =
+            currentState.size === 0
+              ? currentState.frontIndex
+              : normalizeCircularIndex(
+                  currentState.rearIndex + 1,
+                  currentState.capacity,
+                );
+
+          nextSlots[nextRearIndex] = circularQueueEnqueueValue;
+
+          return {
+            ...currentState,
+            slots: nextSlots,
+            rearIndex: nextRearIndex,
+            size: currentState.size + 1,
+          };
+        });
+      }
+
+      if (circularQueueOperationId === "dequeue") {
+        setCircularQueueState((currentState) => {
+          if (currentState.size <= 0) {
+            return currentState;
+          }
+
+          const nextSlots = [...currentState.slots];
+          nextSlots[currentState.frontIndex] = null;
+
+          const nextSize = currentState.size - 1;
+          const nextFrontIndex =
+            nextSize > 0
+              ? normalizeCircularIndex(
+                  currentState.frontIndex + 1,
+                  currentState.capacity,
+                )
+              : currentState.frontIndex;
+
+          return {
+            ...currentState,
+            slots: nextSlots,
+            size: nextSize,
+            frontIndex: nextFrontIndex,
+            rearIndex: nextSize > 0 ? currentState.rearIndex : -1,
+          };
+        });
+      }
+    }
   }, [
     runtimeStatus,
     runtimeSnapshot,
+    selectedStructureId,
     arrayOperationId,
+    stackOperationId,
+    queueOperationId,
+    circularQueueOperationId,
     updateIndex,
     updateValue,
-    pushValue,
+    arrayPushValue,
     insertIndex,
     insertValue,
     deleteIndex,
+    stackPushValue,
+    queueEnqueueValue,
+    circularQueueEnqueueValue,
+    circularQueueState.frontIndex,
+    circularQueueState.rearIndex,
+    circularQueueState.size,
   ]);
+
+  const resetCommitAndRuntime = () => {
+    resetRuntime();
+    lastCommitKeyRef.current = null;
+    setRuntimeSnapshot(getInitialSnapshot());
+  };
 
   const handleSelectDataStructure = (itemId: string) => {
     if (!isCatalogItemId(itemId)) return;
 
-    resetRuntime();
-    lastCommitKeyRef.current = null;
-    setRuntimeSnapshot(getInitialSnapshot());
+    resetCommitAndRuntime();
+
     setArrayValues(ARRAY_INITIAL_VALUES);
+    setStackValues(STACK_INITIAL_VALUES);
+    setQueueValues(QUEUE_INITIAL_VALUES);
+    setCircularQueueState(CIRCULAR_QUEUE_INITIAL_STATE);
+
     selectItem(itemId);
   };
 
   const handleSelectArrayOperation = (operationId: string) => {
     if (!isArrayOperationId(operationId)) return;
 
-    resetRuntime();
-    lastCommitKeyRef.current = null;
+    resetCommitAndRuntime();
     setArrayOperationId(operationId);
   };
 
-  const handleSearchTargetChange = (value: string) => {
-    const numericValue = Number(value);
+  const handleSelectStackOperation = (operationId: string) => {
+    if (!isStackOperationId(operationId)) return;
 
-    if (!Number.isFinite(numericValue)) return;
-
-    resetRuntime();
-    lastCommitKeyRef.current = null;
-    setSearchTarget(numericValue);
+    resetCommitAndRuntime();
+    setStackOperationId(operationId);
   };
 
-  const handleAccessIndexChange = (value: string) => {
-    const numericValue = Number(value);
+  const handleSelectQueueOperation = (operationId: string) => {
+    if (!isQueueOperationId(operationId)) return;
 
-    if (!Number.isFinite(numericValue)) return;
-
-    resetRuntime();
-    lastCommitKeyRef.current = null;
-    setAccessIndex(numericValue);
+    resetCommitAndRuntime();
+    setQueueOperationId(operationId);
   };
 
-  const handleUpdateIndexChange = (value: string) => {
-    const numericValue = Number(value);
+  const handleSelectCircularQueueOperation = (operationId: string) => {
+    if (!isCircularQueueOperationId(operationId)) return;
 
-    if (!Number.isFinite(numericValue)) return;
-
-    resetRuntime();
-    lastCommitKeyRef.current = null;
-    setUpdateIndex(numericValue);
+    resetCommitAndRuntime();
+    setCircularQueueOperationId(operationId);
   };
 
-  const handleUpdateValueChange = (value: string) => {
+  const handleNumberChange = (
+    value: string,
+    setter: (value: number) => void,
+  ) => {
     const numericValue = Number(value);
 
     if (!Number.isFinite(numericValue)) return;
 
-    resetRuntime();
-    lastCommitKeyRef.current = null;
-    setUpdateValue(numericValue);
-  };
-
-  const handlePushValueChange = (value: string) => {
-    const numericValue = Number(value);
-
-    if (!Number.isFinite(numericValue)) return;
-
-    resetRuntime();
-    lastCommitKeyRef.current = null;
-    setPushValue(numericValue);
-  };
-
-  const handleInsertIndexChange = (value: string) => {
-    const numericValue = Number(value);
-
-    if (!Number.isFinite(numericValue)) return;
-
-    resetRuntime();
-    lastCommitKeyRef.current = null;
-    setInsertIndex(numericValue);
-  };
-
-  const handleInsertValueChange = (value: string) => {
-    const numericValue = Number(value);
-
-    if (!Number.isFinite(numericValue)) return;
-
-    resetRuntime();
-    lastCommitKeyRef.current = null;
-    setInsertValue(numericValue);
-  };
-
-  const handleDeleteIndexChange = (value: string) => {
-    const numericValue = Number(value);
-
-    if (!Number.isFinite(numericValue)) return;
-
-    resetRuntime();
-    lastCommitKeyRef.current = null;
-    setDeleteIndex(numericValue);
+    resetCommitAndRuntime();
+    setter(numericValue);
   };
 
   const handleRuntimeSnapshotChange = (
@@ -519,6 +794,7 @@ export const DataStructuresWorkspaceSection = () => {
                 runtimeSnapshot.accessIndex ??
                 runtimeSnapshot.updateValue ??
                 runtimeSnapshot.pushValue ??
+                runtimeSnapshot.enqueueValue ??
                 runtimeSnapshot.insertValue ??
                 runtimeSnapshot.deleteIndex ??
                 "—"}
@@ -529,7 +805,7 @@ export const DataStructuresWorkspaceSection = () => {
     );
   };
 
-  const renderArrayLegend = () => {
+  const renderLinearMemoryLegend = () => {
     return (
       <div className="rounded-2xl border border-algo-border bg-surface/85 p-3 shadow-2xl backdrop-blur-md">
         <p className="mb-2 font-mono text-[9px] uppercase tracking-widest text-text-secondary">
@@ -537,7 +813,7 @@ export const DataStructuresWorkspaceSection = () => {
         </p>
 
         <div className="flex flex-wrap gap-x-4 gap-y-2">
-          {ARRAY_LEGEND_ITEMS.map((item) => (
+          {LINEAR_MEMORY_LEGEND_ITEMS.map((item) => (
             <div
               key={item.label}
               className="flex items-center gap-2 text-[10px] leading-4 text-text-secondary"
@@ -570,7 +846,7 @@ export const DataStructuresWorkspaceSection = () => {
     );
   };
 
-  const renderOperationSpecificControls = () => {
+  const renderArrayOperationSpecificControls = () => {
     if (arrayOperationId === "search") {
       return (
         <div>
@@ -580,7 +856,9 @@ export const DataStructuresWorkspaceSection = () => {
             id="array-search-target"
             type="number"
             value={searchTarget}
-            onChange={(event) => handleSearchTargetChange(event.target.value)}
+            onChange={(event) =>
+              handleNumberChange(event.target.value, setSearchTarget)
+            }
             className={EDITABLE_CONTROL_CLASS_NAME}
           />
         </div>
@@ -598,7 +876,9 @@ export const DataStructuresWorkspaceSection = () => {
             min={0}
             max={arrayValues.length - 1}
             value={accessIndex}
-            onChange={(event) => handleAccessIndexChange(event.target.value)}
+            onChange={(event) =>
+              handleNumberChange(event.target.value, setAccessIndex)
+            }
             className={EDITABLE_CONTROL_CLASS_NAME}
           />
         </div>
@@ -618,7 +898,7 @@ export const DataStructuresWorkspaceSection = () => {
               max={arrayValues.length - 1}
               value={updateIndex}
               onChange={(event) =>
-                handleUpdateIndexChange(event.target.value)
+                handleNumberChange(event.target.value, setUpdateIndex)
               }
               className={EDITABLE_CONTROL_CLASS_NAME}
             />
@@ -632,7 +912,7 @@ export const DataStructuresWorkspaceSection = () => {
               type="number"
               value={updateValue}
               onChange={(event) =>
-                handleUpdateValueChange(event.target.value)
+                handleNumberChange(event.target.value, setUpdateValue)
               }
               className={EDITABLE_CONTROL_CLASS_NAME}
             />
@@ -649,8 +929,10 @@ export const DataStructuresWorkspaceSection = () => {
           <input
             id="array-push-value"
             type="number"
-            value={pushValue}
-            onChange={(event) => handlePushValueChange(event.target.value)}
+            value={arrayPushValue}
+            onChange={(event) =>
+              handleNumberChange(event.target.value, setArrayPushValue)
+            }
             className={EDITABLE_CONTROL_CLASS_NAME}
           />
         </div>
@@ -670,7 +952,7 @@ export const DataStructuresWorkspaceSection = () => {
               max={arrayValues.length}
               value={insertIndex}
               onChange={(event) =>
-                handleInsertIndexChange(event.target.value)
+                handleNumberChange(event.target.value, setInsertIndex)
               }
               className={EDITABLE_CONTROL_CLASS_NAME}
             />
@@ -684,7 +966,7 @@ export const DataStructuresWorkspaceSection = () => {
               type="number"
               value={insertValue}
               onChange={(event) =>
-                handleInsertValueChange(event.target.value)
+                handleNumberChange(event.target.value, setInsertValue)
               }
               className={EDITABLE_CONTROL_CLASS_NAME}
             />
@@ -704,7 +986,9 @@ export const DataStructuresWorkspaceSection = () => {
             min={0}
             max={arrayValues.length - 1}
             value={deleteIndex}
-            onChange={(event) => handleDeleteIndexChange(event.target.value)}
+            onChange={(event) =>
+              handleNumberChange(event.target.value, setDeleteIndex)
+            }
             className={EDITABLE_CONTROL_CLASS_NAME}
           />
         </div>
@@ -718,8 +1002,189 @@ export const DataStructuresWorkspaceSection = () => {
     );
   };
 
-  const renderArrayOperationControls = () => {
-    if (!selectedItem || selectedItem.id !== "array") return null;
+  const renderOperationControls = () => {
+    if (!selectedItem) return null;
+
+    if (selectedStructureId === "stack") {
+      return (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div>
+            {renderEditableLabel("stack-operation-select", "Operación")}
+
+            <select
+              id="stack-operation-select"
+              value={stackOperationId}
+              onChange={(event) =>
+                handleSelectStackOperation(event.target.value)
+              }
+              className={EDITABLE_CONTROL_CLASS_NAME}
+            >
+              {STACK_OPERATION_OPTIONS.map((operation) => (
+                <option
+                  key={operation.id}
+                  value={operation.id}
+                  className="bg-data-background text-text-primary"
+                >
+                  {operation.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {stackOperationId === "push" && (
+            <div>
+              {renderEditableLabel("stack-push-value", "Valor a apilar")}
+
+              <input
+                id="stack-push-value"
+                type="number"
+                value={stackPushValue}
+                onChange={(event) =>
+                  handleNumberChange(event.target.value, setStackPushValue)
+                }
+                className={EDITABLE_CONTROL_CLASS_NAME}
+              />
+            </div>
+          )}
+
+          {selectedStackOperation && (
+            <p className="text-[11px] leading-5 text-text-secondary sm:col-span-3">
+              {selectedStackOperation.description}
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    if (selectedStructureId === "queue") {
+      return (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div>
+            {renderEditableLabel("queue-operation-select", "Operación")}
+
+            <select
+              id="queue-operation-select"
+              value={queueOperationId}
+              onChange={(event) =>
+                handleSelectQueueOperation(event.target.value)
+              }
+              className={EDITABLE_CONTROL_CLASS_NAME}
+            >
+              {QUEUE_OPERATION_OPTIONS.map((operation) => (
+                <option
+                  key={operation.id}
+                  value={operation.id}
+                  className="bg-data-background text-text-primary"
+                >
+                  {operation.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {queueOperationId === "enqueue" && (
+            <div>
+              {renderEditableLabel("queue-enqueue-value", "Valor a encolar")}
+
+              <input
+                id="queue-enqueue-value"
+                type="number"
+                value={queueEnqueueValue}
+                onChange={(event) =>
+                  handleNumberChange(event.target.value, setQueueEnqueueValue)
+                }
+                className={EDITABLE_CONTROL_CLASS_NAME}
+              />
+            </div>
+          )}
+
+          {selectedQueueOperation && (
+            <p className="text-[11px] leading-5 text-text-secondary sm:col-span-3">
+              {selectedQueueOperation.description}
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    if (selectedStructureId === "circular-queue") {
+      return (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div>
+            {renderEditableLabel(
+              "circular-queue-operation-select",
+              "Operación",
+            )}
+
+            <select
+              id="circular-queue-operation-select"
+              value={circularQueueOperationId}
+              onChange={(event) =>
+                handleSelectCircularQueueOperation(event.target.value)
+              }
+              className={EDITABLE_CONTROL_CLASS_NAME}
+            >
+              {CIRCULAR_QUEUE_OPERATION_OPTIONS.map((operation) => (
+                <option
+                  key={operation.id}
+                  value={operation.id}
+                  className="bg-data-background text-text-primary"
+                >
+                  {operation.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {circularQueueOperationId === "enqueue" && (
+            <div>
+              {renderEditableLabel(
+                "circular-queue-enqueue-value",
+                "Valor a encolar",
+              )}
+
+              <input
+                id="circular-queue-enqueue-value"
+                type="number"
+                value={circularQueueEnqueueValue}
+                onChange={(event) =>
+                  handleNumberChange(
+                    event.target.value,
+                    setCircularQueueEnqueueValue,
+                  )
+                }
+                className={EDITABLE_CONTROL_CLASS_NAME}
+              />
+            </div>
+          )}
+
+          <div className="rounded-xl border border-algo-border bg-surface/50 px-3 py-2 text-[11px] leading-5 text-text-secondary">
+            FRONT:{" "}
+            <strong className="text-text-primary">
+              {circularQueueState.size > 0
+                ? circularQueueState.frontIndex
+                : "—"}
+            </strong>{" "}
+            · REAR:{" "}
+            <strong className="text-text-primary">
+              {circularQueueState.size > 0
+                ? circularQueueState.rearIndex
+                : "—"}
+            </strong>{" "}
+            · Tamaño:{" "}
+            <strong className="text-text-primary">
+              {circularQueueState.size}/{circularQueueState.capacity}
+            </strong>
+          </div>
+
+          {selectedCircularQueueOperation && (
+            <p className="text-[11px] leading-5 text-text-secondary sm:col-span-3">
+              {selectedCircularQueueOperation.description}
+            </p>
+          )}
+        </div>
+      );
+    }
 
     return (
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -744,7 +1209,7 @@ export const DataStructuresWorkspaceSection = () => {
           </select>
         </div>
 
-        {renderOperationSpecificControls()}
+        {renderArrayOperationSpecificControls()}
 
         {selectedArrayOperation && (
           <p className="text-[11px] leading-5 text-text-secondary sm:col-span-3">
@@ -773,30 +1238,28 @@ export const DataStructuresWorkspaceSection = () => {
             <div className="grid gap-2 xl:grid-cols-[minmax(280px,420px)_minmax(0,1fr)]">
               <div className="rounded-2xl border border-algo-border bg-data-background/60 p-2.5">
                 <PlaybackControls
-                  mobileScrollTargetId={ARRAY_RUNTIME_VIEW_ID}
+                  mobileScrollTargetId={LINEAR_MEMORY_RUNTIME_VIEW_ID}
                   mobileScrollOffset={20}
                 />
               </div>
 
               <div className="rounded-2xl border border-algo-border bg-data-background/60 p-2.5">
-                {renderArrayOperationControls()}
+                {renderOperationControls()}
               </div>
             </div>
 
-            <div className="xl:hidden">
-              {renderRuntimeSummary("mobile")}
-            </div>
+            <div className="xl:hidden">{renderRuntimeSummary("mobile")}</div>
           </div>
 
           <div
-            id={ARRAY_RUNTIME_VIEW_ID}
+            id={LINEAR_MEMORY_RUNTIME_VIEW_ID}
             data-runtime-scroll-target="true"
             className="relative h-[430px] flex-1 scroll-mt-5 sm:h-[520px] md:h-[600px] lg:h-auto lg:min-h-0"
           >
             <Canvas className="h-full w-full">
               <LinearMemoryScene
                 structureId={selectedItem.id}
-                values={arrayValues}
+                values={selectedLinearValues}
                 operationConfig={operationConfig}
                 onRuntimeSnapshotChange={handleRuntimeSnapshotChange}
               />
@@ -809,7 +1272,7 @@ export const DataStructuresWorkspaceSection = () => {
             </div>
 
             <div className="pointer-events-none absolute bottom-4 left-4 z-10 hidden xl:block">
-              {renderArrayLegend()}
+              {renderLinearMemoryLegend()}
             </div>
           </div>
 
@@ -819,7 +1282,7 @@ export const DataStructuresWorkspaceSection = () => {
                 Ver guía visual
               </summary>
 
-              <div className="mt-3">{renderArrayLegend()}</div>
+              <div className="mt-3">{renderLinearMemoryLegend()}</div>
             </details>
           </div>
         </div>
@@ -834,8 +1297,8 @@ export const DataStructuresWorkspaceSection = () => {
           </p>
 
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-text-secondary">
-            Esta estructura está en el catálogo, pero todavía no tiene escena
-            3D conectada.
+            Esta estructura está en el catálogo, pero todavía no tiene escena 3D
+            conectada.
           </p>
         </div>
       </div>

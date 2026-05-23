@@ -115,7 +115,8 @@ export const CATALOG_CATEGORIES = [
     id: "advanced-structures",
     domainId: "data-structures",
     title: "Estructuras avanzadas",
-    description: "Estructuras especializadas para escenarios de mayor complejidad.",
+    description:
+      "Estructuras especializadas para escenarios de mayor complejidad.",
     order: 6,
   },
   {
@@ -207,6 +208,36 @@ export const CATALOG_ITEMS = [
     tags: ["memoria lineal", "índices", "celdas"],
   },
   {
+    id: "stack",
+    name: "Stack",
+    type: "data-structure",
+    categoryId: "linear-memory",
+    description:
+      "Pila lineal basada en LIFO: último en entrar, primero en salir.",
+    complexity: "push O(1) · pop O(1) · peek O(1)",
+    tags: ["memoria lineal", "LIFO", "TOP"],
+  },
+  {
+    id: "queue",
+    name: "Queue",
+    type: "data-structure",
+    categoryId: "linear-memory",
+    description:
+      "Cola lineal basada en FIFO: primero en entrar, primero en salir.",
+    complexity: "enqueue O(1) · dequeue O(1)",
+    tags: ["memoria lineal", "FIFO", "FRONT", "REAR"],
+  },
+  {
+    id: "circular-queue",
+    name: "Circular Queue",
+    type: "data-structure",
+    categoryId: "linear-memory",
+    description:
+      "Cola circular que reutiliza posiciones mediante FRONT y REAR usando aritmética modular.",
+    complexity: "enqueue O(1) · dequeue O(1)",
+    tags: ["memoria lineal", "FIFO", "circular", "módulo"],
+  },
+  {
     id: "bubble-sort",
     name: "Bubble Sort",
     type: "algorithm",
@@ -287,20 +318,22 @@ export type CatalogItemId = CatalogItem["id"];
  * Próximos elementos a implementar:
  *
  * Estructuras de datos:
- * - array
- * - stack
- * - queue
  * - linked-list
  * - binary-search-tree
  * - heap
  * - graph-basic
  *
- * Algoritmos divide y vencerás:
- * - merge-sort
+ * Algoritmos sobre grafos:
+ * - breadth-first-search
+ * - depth-first-search
+ * - dijkstra
  *
- * Algoritmos basados en heap:
- * - heap-sort
+ * Algoritmos sobre árboles:
+ * - bst-search
+ * - bst-insert
  *
- * Algoritmos por distribución:
- * - counting-sort
+ * Estructuras avanzadas:
+ * - hash-table
+ * - trie
+ * - bloom-filter
  */
