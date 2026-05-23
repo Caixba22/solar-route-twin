@@ -1,29 +1,4 @@
-// Ruta:
 // src/features/dataStructures/linearMemory/components/LinearArrayCells.tsx
-
-/**
- * LinearArrayCells
- *
- * Renderiza un array como celdas rectangulares instanciadas.
- *
- * Responsabilidad:
- * - Dibujar celdas del mismo tamaño.
- * - Mostrar valor e índice de cada posición.
- * - Mostrar etiquetas guía para que el usuario entienda qué fila es valor
- *   y qué fila representa índices.
- * - Exponer el InstancedMesh al runner mediante ref.
- *
- * Importante:
- * - Las transformaciones pesadas se aplican sobre InstancedMesh.
- * - Los colores vienen desde ALGO_THEME.
- * - No guarda estado React para animaciones.
- *
- * Corrección visual:
- * - Se crea una geometría base con vertex color blanco.
- * - Se inicializa cada instancia con ALGO_THEME.data.default.
- * - Esto evita que las celdas aparezcan negras antes de que el runner pinte
- *   los estados de ejecución.
- */
 
 import {
   forwardRef,
@@ -49,12 +24,6 @@ const createLinearCellGeometry = () => {
   const geometry = new THREE.BoxGeometry(1, 1, 1);
   const positionAttribute = geometry.getAttribute("position");
 
-  /**
-   * Color blanco como multiplicador neutral.
-   *
-   * Esto permite que instanceColor controle el color real
-   * de cada celda sin oscurecerse.
-   */
   const vertexColors = new Float32Array(positionAttribute.count * 3);
 
   for (let index = 0; index < positionAttribute.count; index++) {
@@ -90,20 +59,8 @@ export const LinearArrayCells = forwardRef<
 
   const geometry = useMemo(() => createLinearCellGeometry(), []);
 
-  /**
-   * Exponemos el InstancedMesh real al runner.
-   *
-   * Así useLinearMemoryRunner puede pintar colores,
-   * mover matrices y controlar las instancias sin estado React pesado.
-   */
   useImperativeHandle(ref, () => meshRef.current as THREE.InstancedMesh);
 
-  /**
-   * Inicializa visualmente las celdas.
-   *
-   * Esto evita que se vean negras antes de que el runner aplique
-   * el primer snapshot visual.
-   */
   useLayoutEffect(() => {
     const mesh = meshRef.current;
 
@@ -130,13 +87,6 @@ export const LinearArrayCells = forwardRef<
     forceMaterialUpdate(mesh);
   }, [values.length]);
 
-  /**
-   * Posición de las etiquetas laterales.
-   *
-   * Se colocan antes de la primera celda para explicar:
-   * - VALOR: dato almacenado.
-   * - ÍNDICE: posición dentro del array.
-   */
   const labelX = useMemo(() => {
     if (values.length === 0) return -1.5;
 
@@ -161,7 +111,6 @@ export const LinearArrayCells = forwardRef<
         />
       </instancedMesh>
 
-      {/* Etiqueta de la fila de valores */}
       <Text
         position={[labelX, 1.23, 0.43]}
         fontSize={0.15}
@@ -172,7 +121,6 @@ export const LinearArrayCells = forwardRef<
         VALOR
       </Text>
 
-      {/* Etiqueta de la fila de índices */}
       <Text
         position={[labelX, 0.48, 0.43]}
         fontSize={0.15}
@@ -188,7 +136,6 @@ export const LinearArrayCells = forwardRef<
 
         return (
           <group key={`${index}-${value}`} position={[x, y, z]}>
-            {/* Valor almacenado en la celda */}
             <Text
               position={[0, 0.03, 0.43]}
               fontSize={0.28}
@@ -199,7 +146,6 @@ export const LinearArrayCells = forwardRef<
               {value}
             </Text>
 
-            {/* Índice de la celda */}
             <Text
               position={[0, -0.72, 0.43]}
               fontSize={0.16}

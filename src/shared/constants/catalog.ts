@@ -1,30 +1,11 @@
-// Ruta:
 // src/shared/constants/catalog.ts
-
-/**
- * Catálogo principal de VertexNodes.
- *
- * Este archivo es la fuente única de verdad para:
- * - Dominios principales del sistema.
- * - Categorías internas.
- * - Items implementados: algoritmos o estructuras.
- * - Tipos derivados automáticamente desde los datos reales.
- *
- * Regla importante:
- * - Si un item está dentro de CATALOG_ITEMS, ya debe poder visualizarse.
- * - Si todavía no está implementado, déjalo solo como comentario guía.
- */
 
 export type CatalogAccent = "active" | "comparing";
 
-/**
- * Tipos posibles de item.
- */
+
 export type CatalogItemType = "data-structure" | "algorithm";
 
-/**
- * Forma base de un dominio.
- */
+
 type CatalogDomainDefinition = {
   id: string;
   title: string;
@@ -33,14 +14,12 @@ type CatalogDomainDefinition = {
   order: number;
 };
 
-/**
- * Dominios principales del laboratorio.
- */
+
 export const CATALOG_DOMAINS = [
   {
     id: "data-structures",
     title: "Estructuras de datos",
-    description: "Visualizar memoria, nodos, árboles y grafos.",
+    description: "Visualizar acceso, inserción, eliminación y cambios de estado.",
     accent: "active",
     order: 1,
   },
@@ -53,15 +32,11 @@ export const CATALOG_DOMAINS = [
   },
 ] as const satisfies readonly CatalogDomainDefinition[];
 
-/**
- * Tipos derivados automáticamente desde CATALOG_DOMAINS.
- */
+
 export type CatalogDomain = (typeof CATALOG_DOMAINS)[number];
 export type CatalogDomainId = CatalogDomain["id"];
 
-/**
- * Forma base de una categoría.
- */
+
 type CatalogCategoryDefinition = {
   id: string;
   domainId: CatalogDomainId;
@@ -70,9 +45,7 @@ type CatalogCategoryDefinition = {
   order: number;
 };
 
-/**
- * Categorías internas del catálogo.
- */
+
 export const CATALOG_CATEGORIES = [
   {
     id: "linear-memory",
@@ -171,15 +144,11 @@ export const CATALOG_CATEGORIES = [
   },
 ] as const satisfies readonly CatalogCategoryDefinition[];
 
-/**
- * Tipos derivados automáticamente desde CATALOG_CATEGORIES.
- */
+
 export type CatalogCategory = (typeof CATALOG_CATEGORIES)[number];
 export type CatalogCategoryId = CatalogCategory["id"];
 
-/**
- * Forma base de un item del catálogo.
- */
+
 type CatalogItemDefinition = {
   id: string;
   name: string;
@@ -190,12 +159,7 @@ type CatalogItemDefinition = {
   tags?: readonly string[];
 };
 
-/**
- * Items actualmente implementados.
- *
- * Importante:
- * Si aparece aquí, debe tener visualización conectada.
- */
+
 export const CATALOG_ITEMS = [
   {
     id: "array",
@@ -308,32 +272,6 @@ export const CATALOG_ITEMS = [
   },
 ] as const satisfies readonly CatalogItemDefinition[];
 
-/**
- * Tipos derivados automáticamente desde CATALOG_ITEMS.
- */
+
 export type CatalogItem = (typeof CATALOG_ITEMS)[number];
 export type CatalogItemId = CatalogItem["id"];
-
-/**
- * Próximos elementos a implementar:
- *
- * Estructuras de datos:
- * - linked-list
- * - binary-search-tree
- * - heap
- * - graph-basic
- *
- * Algoritmos sobre grafos:
- * - breadth-first-search
- * - depth-first-search
- * - dijkstra
- *
- * Algoritmos sobre árboles:
- * - bst-search
- * - bst-insert
- *
- * Estructuras avanzadas:
- * - hash-table
- * - trie
- * - bloom-filter
- */

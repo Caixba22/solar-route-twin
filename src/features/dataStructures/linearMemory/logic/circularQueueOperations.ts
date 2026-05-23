@@ -1,41 +1,4 @@
-// Ruta:
 // src/features/dataStructures/linearMemory/logic/circularQueueOperations.ts
-
-/**
- * circularQueueOperations
- *
- * Lógica pura para operaciones sobre Circular Queue.
- *
- * Circular Queue:
- * - Cola circular.
- * - Mantiene lógica FIFO.
- * - FIFO significa First In, First Out.
- * - En español: primero en entrar, primero en salir.
- *
- * Diferencia con Queue normal:
- * - En una Queue lineal, REAR avanza hacia el final.
- * - En una Circular Queue, cuando REAR llega al último índice,
- *   puede volver al índice 0 si hay espacio disponible.
- *
- * Fórmula clave:
- * - nextRear = (rear + 1) % capacity
- * - nextFront = (front + 1) % capacity
- *
- * Importante:
- * - No usa React.
- * - No usa Three.js.
- * - No usa Zustand.
- * - Solo emite pasos visuales.
- *
- * Representación:
- * - values representa las celdas físicas de la cola circular.
- * - Un valor null representa una celda vacía.
- *
- * Ejemplo:
- * [40, null, null, 12, 18]
- *  ↑              ↑
- * REAR           FRONT
- */
 
 import type { AlgoStep } from "../../../../shared/types/runtime.types";
 
@@ -57,33 +20,11 @@ export type CircularQueueOperationId =
 export type CircularQueueOperationConfig = {
   operationId: CircularQueueOperationId;
 
-  /**
-   * Valor que se agregará en enqueue().
-   */
   enqueueValue: number;
-
-  /**
-   * Capacidad máxima de la cola circular.
-   *
-   * Si no se proporciona, se usa values.length.
-   */
   capacity?: number;
-
-  /**
-   * Índice lógico de FRONT.
-   */
   frontIndex?: number;
-
-  /**
-   * Índice lógico de REAR.
-   */
   rearIndex?: number;
 
-  /**
-   * Cantidad de elementos ocupados.
-   *
-   * Si no se proporciona, se calcula contando las celdas no vacías.
-   */
   size?: number;
 };
 
@@ -199,15 +140,6 @@ const formatSlotValue = (value: CircularQueueSlot): string => {
   return value === null ? "vacío" : String(value);
 };
 
-/**
- * Operación:
- * Recorrer cola circular.
- *
- * Se recorre en orden lógico FIFO:
- * - empieza en FRONT
- * - avanza usando módulo
- * - termina en REAR
- */
 function* circularQueueTraversalGenerator(
   values: CircularQueueSlot[],
   config: CircularQueueOperationConfig,
@@ -265,15 +197,6 @@ function* circularQueueTraversalGenerator(
   };
 }
 
-/**
- * Operación:
- * enqueue()
- *
- * Agrega un nuevo valor en la posición siguiente a REAR.
- *
- * Si REAR está al final, usa:
- * nextRear = (rear + 1) % capacity
- */
 function* circularQueueEnqueueGenerator(
   values: CircularQueueSlot[],
   config: CircularQueueOperationConfig,
@@ -350,15 +273,6 @@ function* circularQueueEnqueueGenerator(
   };
 }
 
-/**
- * Operación:
- * dequeue()
- *
- * Retira el elemento ubicado en FRONT.
- *
- * Si FRONT está al final y todavía quedan elementos, usa:
- * nextFront = (front + 1) % capacity
- */
 function* circularQueueDequeueGenerator(
   values: CircularQueueSlot[],
   config: CircularQueueOperationConfig,
@@ -441,12 +355,6 @@ function* circularQueueDequeueGenerator(
   };
 }
 
-/**
- * Operación:
- * front()
- *
- * Consulta FRONT sin retirarlo.
- */
 function* circularQueueFrontGenerator(
   values: CircularQueueSlot[],
   config: CircularQueueOperationConfig,
@@ -477,12 +385,6 @@ function* circularQueueFrontGenerator(
   };
 }
 
-/**
- * Operación:
- * rear()
- *
- * Consulta REAR sin retirarlo.
- */
 function* circularQueueRearGenerator(
   values: CircularQueueSlot[],
   config: CircularQueueOperationConfig,
@@ -513,10 +415,6 @@ function* circularQueueRearGenerator(
   };
 }
 
-/**
- * Operación:
- * isEmpty()
- */
 function* circularQueueIsEmptyGenerator(
   values: CircularQueueSlot[],
   config: CircularQueueOperationConfig,
@@ -548,10 +446,6 @@ function* circularQueueIsEmptyGenerator(
   };
 }
 
-/**
- * Operación:
- * isFull()
- */
 function* circularQueueIsFullGenerator(
   values: CircularQueueSlot[],
   config: CircularQueueOperationConfig,
@@ -586,9 +480,6 @@ function* circularQueueIsFullGenerator(
   };
 }
 
-/**
- * Crea el generador correcto según la operación seleccionada.
- */
 export const createCircularQueueOperationGenerator = (
   values: CircularQueueSlot[],
   config: CircularQueueOperationConfig,

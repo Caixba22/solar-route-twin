@@ -1,70 +1,47 @@
 // Ruta:
 // src/shared/constants/theme.ts
 
-/**
- * ALGO_THEME
- *
- * Fuente única de verdad visual para VertexNodes.
- *
- * Importante:
- * - No hardcodear colores en componentes.
- * - Las barras 3D toman colores desde ALGO_THEME.data.
- * - La escena toma colores desde ALGO_THEME.scene.
- * - La interfaz toma colores desde ALGO_THEME.ui.
- */
-
 export const ALGO_THEME = {
   data: {
     background: "#020617",
 
-    // Barras normales
-    default: "#38bdf8",
+    default: "#cbd5e1",
 
-    // Estado activo: swaps, movimientos o desplazamientos
-    active: "#7c3aed",
+    active: "#64748b",
 
-    // Comparando elementos
-    comparing: "#f59e0b",
+    comparing: "#fbbf24",
 
-    // Elementos ya ordenados
-    sorted: "#10b981",
+    sorted: "#34d399",
 
-    // Estado crítico general
-    critical: "#ef4444",
+    critical: "#fb7185",
 
-    // Pivote en algoritmos como Quick Sort
-    pivot: "#ec4899",
+    pivot: "#e2e8f0",
 
-    // Frontera o índice de partición en algoritmos como Quick Sort
     boundary: "#f8fafc",
   },
 
   scene: {
-    // Fondo general del Canvas
     background: "#020617",
 
-    // Fondo detrás de las barras: grafito azulado, más claro que el Canvas
-    sortingBackdrop: "#111827",
+    sortingBackdrop: "#070b12",
 
-    // Borde del panel
     sortingBackdropBorder: "#475569",
 
-    // Color sutil para piso o líneas
-    sortingBackdropGrid: "#334155",
+    sortingBackdropGrid: "#1f2937",
   },
 
   ui: {
     surface: "#020617",
     surfaceHover: "#111827",
-    border: "#334155",
+    border: "#475569",
     textPrimary: "#f8fafc",
     textSecondary: "#94a3b8",
-    accent: "#7c3aed",
+    accent: "#64748b",
   },
 
   engine: {
-    glowIntensity: 1.25,
-    bloomThreshold: 0.86,
+    glowIntensity: 1.08,
+    bloomThreshold: 0.91,
     gridColor: "#334155",
   },
 } as const;

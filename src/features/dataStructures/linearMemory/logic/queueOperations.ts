@@ -1,36 +1,4 @@
-// Ruta:
 // src/features/dataStructures/linearMemory/logic/queueOperations.ts
-
-/**
- * queueOperations
- *
- * Lógica pura para operaciones sobre Queue.
- *
- * Queue:
- * - Estructura FIFO.
- * - FIFO significa First In, First Out.
- * - En español: primero en entrar, primero en salir.
- *
- * Importante:
- * - No usa React.
- * - No usa Three.js.
- * - No usa Zustand.
- * - Solo emite pasos visuales.
- *
- * Representación visual:
- * - FRONT se considera el índice 0.
- * - REAR se considera el último índice.
- *
- * Ejemplo:
- * [12, 7, 30]
- *  ↑       ↑
- * FRONT   REAR
- *
- * Nota:
- * Esta lógica representa una cola conceptual FIFO.
- * No simula una cola circular ni una implementación con desplazamiento físico
- * obligatorio después de dequeue().
- */
 
 import type { AlgoStep } from "../../../../shared/types/runtime.types";
 
@@ -48,9 +16,6 @@ export type QueueOperationId = (typeof QUEUE_OPERATION_IDS)[number];
 export type QueueOperationConfig = {
   operationId: QueueOperationId;
 
-  /**
-   * Valor que se agregará en enqueue().
-   */
   enqueueValue: number;
 };
 
@@ -73,12 +38,6 @@ const getQueueBoundaries = (values: number[]): number[] => {
   return [0, values.length - 1];
 };
 
-/**
- * Operación:
- * Recorrer cola.
- *
- * En Queue el recorrido natural va de FRONT hacia REAR.
- */
 function* queueTraversalGenerator(
   values: number[],
 ): Generator<AlgoStep, void, unknown> {
@@ -127,12 +86,6 @@ function* queueTraversalGenerator(
   };
 }
 
-/**
- * Operación:
- * enqueue()
- *
- * Agrega un nuevo valor al final de la cola.
- */
 function* queueEnqueueGenerator(
   values: number[],
   nextValue: number,
@@ -190,15 +143,6 @@ function* queueEnqueueGenerator(
   };
 }
 
-/**
- * Operación:
- * dequeue()
- *
- * Retira el elemento que está en FRONT.
- *
- * En una cola FIFO, siempre sale primero el elemento que lleva más tiempo
- * dentro de la cola.
- */
 function* queueDequeueGenerator(
   values: number[],
 ): Generator<AlgoStep, void, unknown> {
@@ -256,12 +200,6 @@ function* queueDequeueGenerator(
   };
 }
 
-/**
- * Operación:
- * front()
- *
- * Consulta el primer elemento de la cola sin retirarlo.
- */
 function* queueFrontGenerator(
   values: number[],
 ): Generator<AlgoStep, void, unknown> {
@@ -290,12 +228,6 @@ function* queueFrontGenerator(
   };
 }
 
-/**
- * Operación:
- * rear()
- *
- * Consulta el último elemento de la cola sin retirarlo.
- */
 function* queueRearGenerator(
   values: number[],
 ): Generator<AlgoStep, void, unknown> {
@@ -324,12 +256,6 @@ function* queueRearGenerator(
   };
 }
 
-/**
- * Operación:
- * isEmpty()
- *
- * Comprueba si la cola está vacía.
- */
 function* queueIsEmptyGenerator(
   values: number[],
 ): Generator<AlgoStep, void, unknown> {
@@ -359,9 +285,6 @@ function* queueIsEmptyGenerator(
   };
 }
 
-/**
- * Crea el generador correcto según la operación seleccionada.
- */
 export const createQueueOperationGenerator = (
   values: number[],
   config: QueueOperationConfig,

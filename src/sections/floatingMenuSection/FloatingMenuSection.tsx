@@ -1,29 +1,4 @@
-// Ruta:
 // src/sections/floatingMenuSection/FloatingMenuSection.tsx
-
-/**
- * FloatingMenuSection
- *
- * Menú flotante para seleccionar el dominio activo del laboratorio.
- *
- * Usa el catálogo como fuente de verdad:
- * - Los dominios vienen desde catalogSelectors.ts.
- * - Los tipos vienen desde catalog.ts.
- *
- * Así evitamos duplicar textos como:
- * - "Estructuras de datos"
- * - "Algoritmos"
- *
- * Si después cambias un título o descripción en catalog.ts,
- * el menú se actualiza automáticamente.
- *
- * Mejora móvil:
- * - En escritorio el menú se mantiene flotante como panel.
- * - En móvil el menú se esconde para no ocupar espacio.
- * - En móvil aparece un botón compacto con el dominio activo.
- * - Al tocar ese botón, el menú sale/despliega.
- * - Al seleccionar un dominio, el menú vuelve a esconderse.
- */
 
 import { useState } from "react";
 
@@ -36,29 +11,8 @@ import { getCatalogDomains } from "../../shared/constants/catalogSelectors";
 
 import { useCatalogSelectionStore } from "../../store/useCatalogSelectionStore";
 
-/**
- * Dominios visibles en el menú.
- *
- * Vienen ordenados desde el selector del catálogo.
- *
- * Lo dejamos fuera del componente porque el catálogo es estático.
- * No depende de estado React ni de props.
- */
 const FLOATING_MENU_ITEMS = getCatalogDomains();
 
-/**
- * Devuelve las clases visuales según el acento del dominio.
- *
- * active:
- * - Se usa para Estructuras de datos.
- *
- * comparing:
- * - Se usa para Algoritmos.
- *
- * Importante:
- * No usamos clases dinámicas como bg-data-${accent}
- * porque Tailwind puede no detectarlas correctamente al compilar.
- */
 const getAccentClassNames = (accent: CatalogAccent) => {
   const classes: Record<
     CatalogAccent,
@@ -93,25 +47,7 @@ const getAccentClassNames = (accent: CatalogAccent) => {
 };
 
 export const FloatingMenuSection = () => {
-  /**
-   * Controla si la lista interna de dominios está desplegada.
-   *
-   * En escritorio:
-   * - El panel siempre se ve.
-   * - Este estado abre/cierra la lista.
-   *
-   * En móvil:
-   * - Cuando el menú sale, abrimos también la lista para que el usuario
-   *   pueda elegir rápido sin ocupar espacio permanente.
-   */
   const [isOpen, setIsOpen] = useState(false);
-
-  /**
-   * Controla si todo el menú flotante está visible en móvil.
-   *
-   * En escritorio no afecta porque el panel se muestra siempre
-   * mediante clases responsive.
-   */
   const [isMobileMenuVisible, setIsMobileMenuVisible] = useState(false);
 
   const activeDomainId = useCatalogSelectionStore(
@@ -120,15 +56,6 @@ export const FloatingMenuSection = () => {
 
   const selectDomain = useCatalogSelectionStore((state) => state.selectDomain);
 
-  /**
-   * Dominio actualmente seleccionado.
-   *
-   * Sirve para pintar el encabezado del menú con el color
-   * correspondiente al dominio activo.
-   *
-   * Si el store tuviera un ID no encontrado, usamos el primer dominio
-   * del catálogo como respaldo visual.
-   */
   const activeDomain =
     FLOATING_MENU_ITEMS.find((domain) => domain.id === activeDomainId) ??
     FLOATING_MENU_ITEMS[0];
@@ -152,32 +79,13 @@ export const FloatingMenuSection = () => {
   };
 
   const handleSelectDomain = (domainId: CatalogDomainId) => {
-    /**
-     * selectDomain limpia también selectedItemId.
-     *
-     * Eso evita que quede seleccionado un algoritmo cuando el usuario
-     * cambia a estructuras de datos, o viceversa.
-     */
     selectDomain(domainId);
 
-    /**
-     * El scroll depende de que los workspaces tengan:
-     *
-     * id="workspace"
-     *
-     * en:
-     * - AlgorithmsWorkspaceSection
-     * - DataStructuresWorkspaceSection
-     */
     document.getElementById("workspace")?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
 
-    /**
-     * En ambos tamaños cerramos la lista.
-     * En móvil además ocultamos todo el menú para recuperar espacio.
-     */
     setIsOpen(false);
     setIsMobileMenuVisible(false);
   };
@@ -266,7 +174,7 @@ export const FloatingMenuSection = () => {
 
                 <div className="min-w-0">
                   <p className="font-mono text-[9px] uppercase tracking-widest text-text-secondary">
-                    Laboratorio activo
+                    Modo de visualización
                   </p>
 
                   <p
@@ -276,11 +184,6 @@ export const FloatingMenuSection = () => {
                     ].join(" ")}
                   >
                     {activeDomain?.title ?? "Selecciona un dominio"}
-                  </p>
-
-                  <p className="mt-0.5 truncate text-xs text-text-secondary">
-                    {activeDomain?.description ??
-                      "Elige el tipo de visualización."}
                   </p>
                 </div>
               </div>
@@ -338,10 +241,10 @@ export const FloatingMenuSection = () => {
                             : "border-transparent",
                         ].join(" ")}
                       >
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-center gap-3">
                           <span
                             className={[
-                              "mt-1 h-2.5 w-2.5 shrink-0 rounded-full",
+                              "h-2.5 w-2.5 shrink-0 rounded-full",
                               accentClasses.dot,
                               isActive ? "animate-pulse" : "",
                             ].join(" ")}
@@ -373,10 +276,6 @@ export const FloatingMenuSection = () => {
                                 </span>
                               )}
                             </div>
-
-                            <p className="mt-1 text-xs leading-relaxed text-text-secondary">
-                              {domain.description}
-                            </p>
                           </div>
                         </div>
                       </button>

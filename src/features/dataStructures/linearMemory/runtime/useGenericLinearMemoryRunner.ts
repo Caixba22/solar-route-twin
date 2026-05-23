@@ -1,19 +1,4 @@
-// Ruta:
 // src/features/dataStructures/linearMemory/runtime/useGenericLinearMemoryRunner.ts
-
-/**
- * useGenericLinearMemoryRunner
- *
- * Runner visual para estructuras lineales nuevas:
- * - Stack
- * - Queue
- * - Circular Queue
- *
- * Importante:
- * - NO reemplaza a useLinearMemoryRunner.
- * - NO toca Array.
- * - Usa LinearMemoryCells.
- */
 
 import { useEffect, useMemo, useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";

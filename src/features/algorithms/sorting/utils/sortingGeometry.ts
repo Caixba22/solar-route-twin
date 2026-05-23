@@ -1,12 +1,7 @@
-// Ruta:
 // src/features/algorithms/sorting/utils/sortingGeometry.ts
 
 import * as THREE from "three";
 
-/**
- * Evita división entre cero o valores inválidos.
- * Se reutiliza en cualquier visualización de ordenamiento.
- */
 export const getSafeMaxValue = (values: number[]) => {
   if (values.length === 0) return 1;
 
@@ -15,10 +10,6 @@ export const getSafeMaxValue = (values: number[]) => {
   return Number.isFinite(max) && max > 0 ? max : 1;
 };
 
-/**
- * Calcula posición y escala de una barra.
- * Se usa al crear las barras y también al animarlas durante el algoritmo.
- */
 export const applyBarTransform = (
   object: THREE.Object3D,
   index: number,

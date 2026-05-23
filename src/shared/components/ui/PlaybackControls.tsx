@@ -1,44 +1,12 @@
-// Ruta:
 // src/shared/components/ui/PlaybackControls.tsx
-
-/**
- * PlaybackControls
- *
- * Controles visuales de reproducción.
- *
- * Responsabilidades:
- * - Iniciar, pausar y volver a ejecutar el runtime.
- * - Cambiar la velocidad de ejecución.
- * - Mostrar el estado actual.
- *
- * Este componente NO ejecuta algoritmos ni estructuras.
- * Solo modifica useAlgoRuntimeStore.
- *
- * Importante:
- * - Es responsivo.
- * - Evita encimar el botón con la barra de velocidad.
- * - Se reutiliza en algoritmos y estructuras de datos.
- *
- * Mejora móvil:
- * - Solo cuando el botón está en modo Play, desplaza suavemente
- *   hacia el punto indicado por mobileScrollTargetId.
- * - No hace scroll al pausar.
- * - No hace scroll al repetir.
- */
 
 import { useAlgoRuntimeStore } from "../../../store/useAlgoRuntimeStore";
 import type { RuntimeStatus } from "../../types/runtime.types";
 
 type PlaybackControlsProps = {
-  /**
-   * ID del elemento exacto hacia donde se hará scroll en móvil.
-   */
+
   mobileScrollTargetId?: string;
 
-  /**
-   * Separación superior para que el contenido no quede pegado
-   * al borde superior de la pantalla.
-   */
   mobileScrollOffset?: number;
 };
 
@@ -172,9 +140,6 @@ export const PlaybackControls = ({
       return;
     }
 
-    /**
-     * Repetir NO hace scroll.
-     */
     if (isFinished) {
       reset();
 
@@ -185,9 +150,6 @@ export const PlaybackControls = ({
       return;
     }
 
-    /**
-     * Solo Play hace scroll.
-     */
     play();
     scrollAfterPlay();
   };

@@ -1,19 +1,4 @@
-// Ruta:
 // src/sections/workSpaceSection/WorkspaceSection.tsx
-
-/**
- * WorkspaceSection
- *
- * Router visual del workspace.
- *
- * Responsabilidad:
- * - Leer el dominio activo desde useCatalogSelectionStore.
- * - Mostrar el workspace correspondiente.
- *
- * No ejecuta algoritmos.
- * No monta escenas directamente.
- * Solo decide qué bloque principal se debe mostrar.
- */
 
 import { useCatalogSelectionStore } from "../../store/useCatalogSelectionStore";
 import { AlgorithmsWorkspaceSection } from "./AlgorithmsWorkspaceSection";

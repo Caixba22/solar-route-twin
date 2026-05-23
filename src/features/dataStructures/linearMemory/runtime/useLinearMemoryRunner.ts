@@ -1,24 +1,4 @@
-// Ruta:
 // src/features/dataStructures/linearMemory/runtime/useLinearMemoryRunner.ts
-
-/**
- * useLinearMemoryRunner
- *
- * Orquesta la ejecución visual de estructuras de memoria lineal.
- *
- * Responsabilidad:
- * - Leer el runtime global desde Zustand.
- * - Ejecutar el generador de pasos.
- * - Pintar celdas directamente en GPU usando InstancedMesh.
- * - Mover punteros visuales sin usar estado React para animaciones pesadas.
- * - Enviar un snapshot textual ligero para explicar qué está pasando.
- *
- * Importante:
- * - No usa estado React para animaciones pesadas.
- * - No decide qué estructuras existen.
- * - No hardcodea colores.
- * - Usa ALGO_THEME como fuente visual.
- */
 
 import { useEffect, useMemo, useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -479,14 +459,6 @@ export const useLinearMemoryRunner = (
       );
     }
 
-    /**
-     * Orden de pintado:
-     * 1. boundary para extremos o límites.
-     * 2. comparing para comparación.
-     * 3. active según el tipo principal del paso.
-     *
-     * active va al final para que el índice actual destaque.
-     */
     paintIndices(mesh, step.boundaryIndices, total, colors.boundary);
     paintIndices(mesh, step.comparingIndices, total, colors.comparing);
 
@@ -502,26 +474,12 @@ export const useLinearMemoryRunner = (
     commitInstanceColors(mesh);
   };
 
-  /**
-   * Reinicia el runner interno cuando cambia:
-   * - la estructura,
-   * - los valores base,
-   * - o la operación seleccionada.
-   *
-   * Solo se reinicia automáticamente cuando el runtime está en idle.
-   * Así no se corta una animación mientras se está ejecutando.
-   */
   useEffect(() => {
     if (status !== "idle") return;
 
     resetInternalRuntime();
   }, [values, structureId, operationConfig, status]);
 
-  /**
-   * Si una operación cambia el tamaño del array mientras ya terminó
-   * visualmente, pedimos un repaint del InstancedMesh para que el nuevo
-   * número de celdas se refleje correctamente.
-   */
   useEffect(() => {
     const previousLength = previousValuesLengthRef.current;
 
@@ -532,10 +490,6 @@ export const useLinearMemoryRunner = (
     }
   }, [values.length, status]);
 
-  /**
-   * Cuando el runtime global vuelve a idle,
-   * se reinicia también el generador interno.
-   */
   useEffect(() => {
     if (status === "idle") {
       resetInternalRuntime();
@@ -552,17 +506,6 @@ export const useLinearMemoryRunner = (
       needsVisualResetRef.current = false;
     }
 
-    /**
-     * En finished dejamos visible el último paso.
-     *
-     * Esto es importante para:
-     * - búsqueda encontrada,
-     * - búsqueda no encontrada,
-     * - acceso por índice,
-     * - actualización,
-     * - inserción,
-     * - eliminación.
-     */
     if (status === "finished") return;
 
     if (status !== "running") return;

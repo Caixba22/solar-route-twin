@@ -1,24 +1,4 @@
-// Ruta:
 // src/features/algorithms/sorting/components/SortingBars.tsx
-
-/**
- * SortingBars
- *
- * Dibuja muchas barras 3D usando InstancedMesh.
- * Esto permite representar arreglos grandes con un solo draw call.
- *
- * Responsabilidad:
- * - Crear el InstancedMesh.
- * - Crear una geometría base compatible con vertexColors.
- * - Aplicar la transformación inicial de cada barra.
- * - Pintar el estado inicial usando ALGO_THEME.data.default.
- *
- * Importante:
- * - No contiene colores de estado hardcodeados.
- * - Los colores visuales vienen desde ALGO_THEME.
- * - El color blanco de la geometría es solo un multiplicador neutral
- *   para permitir que instanceColor se vea correctamente.
- */
 
 import {
   forwardRef,

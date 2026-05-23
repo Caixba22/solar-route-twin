@@ -1,29 +1,4 @@
-// Ruta:
 // src/sections/workSpaceSection/AlgorithmsWorkspaceSection.tsx
-
-/**
- * AlgorithmsWorkspaceSection
- *
- * Workspace visual para algoritmos.
- *
- * Responsabilidades:
- * - Mostrar el selector de algoritmos disponibles.
- * - Leer los algoritmos desde el catálogo central.
- * - Detectar qué algoritmo eligió el usuario.
- * - Montar la escena 3D correspondiente dentro de Canvas.
- * - Mostrar controles de reproducción para ejecutar, pausar y reiniciar.
- *
- * Conexión actual:
- * selectItem() cambia selectedItemId.
- * Si selectedItemId pertenece a un algoritmo de ordenamiento conectado,
- * se monta SortingScene.
- *
- * SortingScene recibe algorithmId y useSortingRunner decide qué generador usar.
- *
- * Mejora visual:
- * - El selector desplegable de algoritmos usa el color del dominio Algoritmos.
- * - El bloque del algoritmo seleccionado también usa ese acento visual.
- */
 
 import { Canvas } from "@react-three/fiber";
 
@@ -43,26 +18,8 @@ import {
 import { useAlgoRuntimeStore } from "../../store/useAlgoRuntimeStore";
 import { useCatalogSelectionStore } from "../../store/useCatalogSelectionStore";
 
-/**
- * Cantidad inicial de barras para algoritmos de ordenamiento.
- *
- * Por ahora lo usan:
- * - Bubble Sort
- * - Selection Sort
- *
- * Recomendado:
- * - 16 a 24 para visualización clara.
- * - 32 o más si ajustas cámara, spacing y rendimiento.
- */
 const SORTING_BAR_COUNT = 24;
 
-/**
- * Genera un arreglo del 1 al tamaño indicado
- * y lo revuelve usando Fisher-Yates.
- *
- * Fisher-Yates:
- * algoritmo para mezclar un arreglo de forma uniforme.
- */
 const createShuffledArray = (size: number): number[] => {
   const values = Array.from({ length: size }, (_, index) => index + 1);
 
@@ -78,24 +35,8 @@ const createShuffledArray = (size: number): number[] => {
   return values;
 };
 
-/**
- * Arreglo inicial para la visualización de ordenamientos.
- *
- * Cada número representa la altura de una barra.
- *
- * Nota:
- * Este arreglo se crea una vez al cargar el módulo.
- * Más adelante podemos moverlo a un estado/control si quieres
- * regenerar datos desde un botón.
- */
 const SORTING_INITIAL_ARRAY = createShuffledArray(SORTING_BAR_COUNT);
 
-/**
- * Datos que recibe SortingBars.
- *
- * SortingBars espera objetos con forma:
- * { value: number }
- */
 const sortingData: DataElement[] = SORTING_INITIAL_ARRAY.map((value) => ({
   value,
 }));
@@ -106,28 +47,9 @@ export const AlgorithmsWorkspaceSection = () => {
   );
 
   const selectItem = useCatalogSelectionStore((state) => state.selectItem);
-
   const resetRuntime = useAlgoRuntimeStore((state) => state.reset);
-
-  /**
-   * Obtiene todos los items pertenecientes al dominio "algorithms".
-   *
-   * Esto incluye únicamente algoritmos implementados en CATALOG_ITEMS.
-   */
   const algorithmItems = getItemsByDomain("algorithms");
-
-  /**
-   * Obtiene solo las categorías del dominio "algorithms"
-   * que tienen al menos un item implementado.
-   */
   const availableCategories = getVisibleCategoriesByDomain("algorithms");
-
-  /**
-   * Busca el algoritmo seleccionado dentro de los algoritmos disponibles.
-   *
-   * Si selectedItemId pertenece a otro dominio o está vacío,
-   * selectedItem será undefined.
-   */
   const selectedItem = algorithmItems.find(
     (item) => item.id === selectedItemId,
   );
@@ -135,19 +57,9 @@ export const AlgorithmsWorkspaceSection = () => {
   const hasAvailableItems = algorithmItems.length > 0;
 
   const handleSelectAlgorithm = (itemId: string) => {
-    /**
-     * El value de un select siempre llega como string.
-     * isCatalogItemId confirma que ese string existe realmente
-     * dentro de CATALOG_ITEMS.
-     */
+  
     if (!isCatalogItemId(itemId)) return;
 
-    /**
-     * Cada vez que se cambia de algoritmo, se reinicia el runtime.
-     *
-     * Esto evita que quede corriendo una animación anterior
-     * cuando el usuario selecciona otro algoritmo.
-     */
     resetRuntime();
     selectItem(itemId);
   };
@@ -163,16 +75,6 @@ export const AlgorithmsWorkspaceSection = () => {
       );
     }
 
-    /**
-     * Si el algoritmo seleccionado pertenece a los algoritmos de ordenamiento
-     * conectados, usamos la misma SortingScene.
-     *
-     * No creamos:
-     * - BubbleSortScene
-     * - SelectionSortScene
-     *
-     * porque el espacio 3D es reutilizable.
-     */
     if (isSortingAlgorithmId(selectedItem.id)) {
       return (
         <div className="flex h-full w-full flex-col">

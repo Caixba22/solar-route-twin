@@ -1,30 +1,9 @@
-// Ruta:
 // src/sections/workSpaceSection/DataStructuresWorkspaceSection.tsx
-
-/**
- * DataStructuresWorkspaceSection
- *
- * Workspace visual para estructuras de datos.
- *
- * Ahora soporta:
- * - Array
- * - Stack
- * - Queue
- * - Circular Queue
- *
- * Importante:
- * - Array conserva su flujo actual.
- * - Stack, Queue y Circular Queue usan LinearMemoryCells + useGenericLinearMemoryRunner.
- * - Los commits de datos se hacen aquí, no dentro del runner.
- */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-
 import { LinearMemoryScene } from "../../features/dataStructures/linearMemory/scene/LinearMemoryScene";
-
 import { isLinearMemoryStructureId } from "../../features/dataStructures/linearMemory/runtime/linearMemoryRegistry";
-
 import {
   isArrayOperationId,
   isCircularQueueOperationId,
@@ -39,16 +18,13 @@ import {
   type QueueOperationId,
   type StackOperationId,
 } from "../../features/dataStructures/linearMemory/types/linearMemory.types";
-
 import { PlaybackControls } from "../../shared/components/ui/PlaybackControls";
-
 import {
   getItemsByCategory,
   getItemsByDomain,
   getVisibleCategoriesByDomain,
   isCatalogItemId,
 } from "../../shared/constants/catalogSelectors";
-
 import { useAlgoRuntimeStore } from "../../store/useAlgoRuntimeStore";
 import { useCatalogSelectionStore } from "../../store/useCatalogSelectionStore";
 

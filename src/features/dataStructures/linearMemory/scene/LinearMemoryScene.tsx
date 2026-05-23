@@ -1,25 +1,4 @@
-// Ruta:
 // src/features/dataStructures/linearMemory/scene/LinearMemoryScene.tsx
-
-/**
- * LinearMemoryScene
- *
- * Escena 3D reutilizable para estructuras de memoria lineal.
- *
- * Rutas visuales:
- * - Array:
- *   - usa LinearArrayCells
- *   - usa useLinearMemoryRunner
- *
- * - Stack / Queue / Circular Queue:
- *   - usan LinearMemoryCells
- *   - usan useGenericLinearMemoryRunner
- *
- * Importante:
- * - No se llaman hooks condicionalmente.
- * - Cada ruta vive en su propio componente interno.
- * - Array queda intacto.
- */
 
 import { useMemo, useRef, type RefObject } from "react";
 import { useThree } from "@react-three/fiber";

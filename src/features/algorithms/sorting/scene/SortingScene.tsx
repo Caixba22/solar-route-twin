@@ -1,24 +1,4 @@
-// Ruta:
 // src/features/algorithms/sorting/scene/SortingScene.tsx
-
-/**
- * SortingScene
- *
- * Escena 3D reutilizable para algoritmos de ordenamiento.
- * Monta cámara, controles, luces, contenedor visual cerrado y barras instanciadas.
- *
- * Responsabilidad:
- * - Preparar el espacio 3D común para ordenamientos.
- * - Renderizar un contenedor tipo cristal técnico cerrado en sus 6 caras.
- * - Renderizar las barras dentro del contenedor.
- * - Indicar al runner qué algoritmo debe ejecutar.
- *
- * Importante:
- * - Los colores vienen desde ALGO_THEME.
- * - No se hardcodean colores en la escena.
- * - El contenedor vive aquí porque será reutilizado por todos los ordenamientos.
- * - useSortingRunner sigue encargado solo de ejecutar y pintar las barras.
- */
 
 import { useMemo, useRef } from "react";
 import { useThree } from "@react-three/fiber";
@@ -63,11 +43,6 @@ export const SortingScene = ({
 
   const cameraFov = isMobile ? 52 : 46;
 
-  /**
-   * Medidas del contenedor.
-   * Se adaptan a la cantidad de barras para que pueda reutilizarse
-   * con otros algoritmos de ordenamiento.
-   */
   const containerWidth = useMemo(
     () => Math.max(14, rawArray.length * 1.15 + 3),
     [rawArray.length],
@@ -77,21 +52,8 @@ export const SortingScene = ({
   const containerDepth = 3;
   const wallThickness = 0.06;
 
-  /**
-   * El grupo del contenedor se centra visualmente para que:
-   * - su base quede cerca de y=0
-   * - las barras vivan dentro del volumen
-   */
   const containerCenterY = containerHeight / 2;
 
-  /**
-   * El runner recibe el algoritmo seleccionado.
-   *
-   * Así la escena sigue siendo la misma para:
-   * - Bubble Sort
-   * - Selection Sort
-   * - futuros ordenamientos compatibles
-   */
   useSortingRunner(meshRef, rawArray, algorithmId);
 
   return (

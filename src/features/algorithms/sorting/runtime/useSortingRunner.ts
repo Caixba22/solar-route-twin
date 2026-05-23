@@ -1,26 +1,4 @@
-// Ruta:
 // src/features/algorithms/sorting/runtime/useSortingRunner.ts
-
-/**
- * useSortingRunner
- *
- * Orquesta la ejecución del ordenamiento.
- * Lee Zustand, ejecuta el generador y modifica las barras directamente en GPU.
- *
- * Responsabilidad:
- * - Ejecutar el algoritmo seleccionado paso a paso.
- * - Actualizar posición/escala de las barras.
- * - Pintar colores por estado usando ALGO_THEME.
- *
- * Importante:
- * - No contiene colores hardcodeados.
- * - No usa estado React para animaciones pesadas.
- * - Usa InstancedMesh directamente para mantener buen rendimiento.
- * - Reutiliza el mismo runner para distintos algoritmos de ordenamiento.
- *
- * Este archivo NO decide qué algoritmos existen.
- * Esa responsabilidad vive en sortingAlgorithmRegistry.ts.
- */
 
 import { useEffect, useMemo, useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -58,9 +36,6 @@ const ensureInstanceColorAttribute = (
   }
 };
 
-/**
- * Pinta una barra individual usando instanceColor.
- */
 const paintInstanceColor = (
   mesh: THREE.InstancedMesh,
   index: number,
@@ -71,26 +46,16 @@ const paintInstanceColor = (
   mesh.instanceColor.setXYZ(index, color.r, color.g, color.b);
 };
 
-/**
- * Confirma la actualización de colores en GPU.
- */
 const commitInstanceColors = (mesh: THREE.InstancedMesh) => {
   if (mesh.instanceColor) {
     mesh.instanceColor.needsUpdate = true;
   }
 };
 
-/**
- * Confirma la actualización de matrices en GPU.
- */
 const commitInstanceMatrices = (mesh: THREE.InstancedMesh) => {
   mesh.instanceMatrix.needsUpdate = true;
 };
 
-/**
- * Fuerza actualización del material.
- * Esto ayuda a que Three.js recompile el shader con instanceColor activo.
- */
 const forceMaterialUpdate = (mesh: THREE.InstancedMesh) => {
   const materials = Array.isArray(mesh.material)
     ? mesh.material
@@ -191,9 +156,6 @@ export const useSortingRunner = (
     forceMaterialUpdate(mesh);
   };
 
-  /**
-   * Pinta un conjunto de índices con un color específico.
-   */
   const paintIndices = (
     mesh: THREE.InstancedMesh,
     indices: number[] | undefined,
@@ -210,19 +172,10 @@ export const useSortingRunner = (
     });
   };
 
-  /**
-   * Reinicia el runtime interno cuando cambia:
-   * - el arreglo inicial,
-   * - o el algoritmo seleccionado.
-   */
   useEffect(() => {
     resetInternalRuntime();
   }, [initialArray, algorithmId]);
 
-  /**
-   * Cuando el runtime global vuelve a idle,
-   * se reinicia también el generador interno.
-   */
   useEffect(() => {
     if (status === "idle") {
       resetInternalRuntime();
@@ -282,20 +235,10 @@ export const useSortingRunner = (
 
       lastStep = result.value;
 
-      /**
-       * active significa que el arreglo cambió físicamente,
-       * por ejemplo, por swap, inserción o desplazamiento.
-       */
       if (lastStep.type === "active") {
         shouldUpdateMatrices = true;
       }
 
-      /**
-       * sorted conserva los índices que ya quedaron ordenados.
-       *
-       * Si el algoritmo manda sortedIndices, usamos esos.
-       * Si no, mantenemos compatibilidad con activeIndices.
-       */
       if (lastStep.type === "sorted") {
         const indicesToStore =
           lastStep.sortedIndices ?? lastStep.activeIndices;
@@ -310,9 +253,6 @@ export const useSortingRunner = (
 
     if (!lastStep) return;
 
-    /**
-     * Primero repintamos todo en default o sorted.
-     */
     for (let index = 0; index < total; index++) {
       const isSorted = sortedIndicesRef.current.has(index);
 
@@ -320,28 +260,14 @@ export const useSortingRunner = (
       paintInstanceColor(mesh, index, colorHelper);
     }
 
-    /**
-     * Luego pintamos el grupo principal según el tipo del paso.
-     */
     const stepColor = getStepColor(lastStep.type);
 
     paintIndices(mesh, lastStep.activeIndices, total, stepColor);
 
-    /**
-     * Después pintamos roles específicos.
-     *
-     * Este orden es intencional:
-     * - comparing puede marcar el elemento escaneado.
-     * - boundary puede marcar la frontera de partición.
-     * - pivot se pinta al final para que siempre destaque.
-     */
     paintIndices(mesh, lastStep.comparingIndices, total, colors.comparing);
     paintIndices(mesh, lastStep.boundaryIndices, total, colors.boundary);
     paintIndices(mesh, lastStep.pivotIndices, total, colors.pivot);
 
-    /**
-     * Si hubo cambio físico en el arreglo, actualizamos matrices.
-     */
     if (shouldUpdateMatrices) {
       arrayCopyRef.current.forEach((value, index) => {
         applyBarTransform(

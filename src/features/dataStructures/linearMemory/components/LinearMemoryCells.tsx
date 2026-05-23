@@ -1,38 +1,4 @@
-// Ruta:
 // src/features/dataStructures/linearMemory/components/LinearMemoryCells.tsx
-
-/**
- * LinearMemoryCells
- *
- * Componente visual independiente para nuevas estructuras de memoria lineal.
- *
- * Importante:
- * - NO reemplaza a LinearArrayCells.
- * - LinearArrayCells se mantiene para la lógica actual de Array.
- * - Este componente se usará para las siguientes estructuras:
- *   - Stack
- *   - Queue
- *   - Circular Queue
- *
- * Responsabilidad:
- * - Dibujar celdas rectangulares instanciadas.
- * - Mostrar valores.
- * - Mostrar posiciones o índices lógicos.
- * - Mostrar marcadores opcionales como TOP, FRONT y REAR.
- * - Exponer el InstancedMesh al runner mediante ref.
- *
- * Uso previsto:
- * - Stack: mostrar TOP.
- * - Queue: mostrar FRONT y REAR.
- * - Circular Queue: mostrar FRONT, REAR y celdas vacías.
- *
- * Importante:
- * - No contiene lógica de operaciones.
- * - No decide qué estructura se está ejecutando.
- * - No usa Zustand.
- * - No guarda estado React para animaciones pesadas.
- * - Los colores vienen desde ALGO_THEME.
- */
 
 import {
   forwardRef,
@@ -59,86 +25,25 @@ export type LinearMemoryCellMarker = {
 };
 
 interface LinearMemoryCellsProps {
-  /**
-   * Valores visibles en las celdas.
-   *
-   * Para Stack:
-   * - normalmente number[]
-   *
-   * Para Queue:
-   * - normalmente number[]
-   *
-   * Para Circular Queue:
-   * - puede usar (number | null)[]
-   * - null representa una celda vacía.
-   */
+ 
   values: readonly LinearMemoryCellValue[];
 
-  /**
-   * Etiqueta lateral superior.
-   *
-   * Ejemplos:
-   * - VALOR
-   * - DATO
-   */
   valueLabel?: string;
 
-  /**
-   * Etiqueta lateral inferior.
-   *
-   * Ejemplos:
-   * - POSICIÓN
-   * - ÍNDICE
-   * - SLOT
-   */
   indexLabel?: string;
 
-  /**
-   * Mostrar u ocultar la fila de índices/posiciones.
-   */
   showIndices?: boolean;
 
-  /**
-   * Mostrar u ocultar etiquetas laterales.
-   */
   showSideLabels?: boolean;
 
-  /**
-   * Texto para celdas vacías.
-   *
-   * Útil principalmente para Circular Queue.
-   */
   emptyLabel?: string;
 
-  /**
-   * Marcadores manuales.
-   *
-   * Ejemplos:
-   * - { index: 2, label: "TOP" }
-   * - { index: 0, label: "FRONT" }
-   * - { index: 4, label: "REAR" }
-   */
   markers?: readonly LinearMemoryCellMarker[];
 
-  /**
-   * Atajo para Stack.
-   *
-   * Si se proporciona, muestra TOP en ese índice.
-   */
   topIndex?: number;
 
-  /**
-   * Atajo para Queue y Circular Queue.
-   *
-   * Si se proporciona, muestra FRONT en ese índice.
-   */
   frontIndex?: number;
 
-  /**
-   * Atajo para Queue y Circular Queue.
-   *
-   * Si se proporciona, muestra REAR en ese índice.
-   */
   rearIndex?: number;
 }
 
@@ -146,12 +51,6 @@ const createLinearCellGeometry = () => {
   const geometry = new THREE.BoxGeometry(1, 1, 1);
   const positionAttribute = geometry.getAttribute("position");
 
-  /**
-   * Color blanco como multiplicador neutral.
-   *
-   * Esto permite que instanceColor controle el color real
-   * de cada celda sin oscurecerse.
-   */
   const vertexColors = new Float32Array(positionAttribute.count * 3);
 
   for (let index = 0; index < positionAttribute.count; index++) {
@@ -215,21 +114,8 @@ export const LinearMemoryCells = forwardRef<
 
     const geometry = useMemo(() => createLinearCellGeometry(), []);
 
-    /**
-     * Exponemos el InstancedMesh real al runner.
-     *
-     * Así un runner específico de Stack, Queue o Circular Queue
-     * podrá pintar colores, mover matrices y controlar instancias
-     * sin estado React pesado.
-     */
     useImperativeHandle(ref, () => meshRef.current as THREE.InstancedMesh);
 
-    /**
-     * Inicializa visualmente las celdas.
-     *
-     * Esto evita que se vean negras antes de que el runner aplique
-     * el primer snapshot visual.
-     */
     useLayoutEffect(() => {
       const mesh = meshRef.current;
 
@@ -256,9 +142,6 @@ export const LinearMemoryCells = forwardRef<
       forceMaterialUpdate(mesh);
     }, [values.length]);
 
-    /**
-     * Posición de las etiquetas laterales.
-     */
     const labelX = useMemo(() => {
       if (values.length === 0) return -1.5;
 
@@ -267,16 +150,6 @@ export const LinearMemoryCells = forwardRef<
       return firstCellX - 1.25;
     }, [values.length]);
 
-    /**
-     * Marcadores automáticos:
-     *
-     * Stack:
-     * - TOP
-     *
-     * Queue / Circular Queue:
-     * - FRONT
-     * - REAR
-     */
     const resolvedMarkers = useMemo(() => {
       const automaticMarkers: LinearMemoryCellMarker[] = [];
 
@@ -325,12 +198,6 @@ export const LinearMemoryCells = forwardRef<
       return automaticMarkers;
     }, [frontIndex, markers, rearIndex, topIndex, values.length]);
 
-    /**
-     * Agrupa marcadores por índice.
-     *
-     * Esto evita que FRONT y REAR se pierdan cuando caen en la misma celda,
-     * por ejemplo en una Queue con un solo elemento.
-     */
     const markersByIndex = useMemo(() => {
       const map = new Map<number, LinearMemoryCellMarker[]>();
 

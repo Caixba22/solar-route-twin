@@ -1,15 +1,4 @@
-// Ruta:
 // src/features/dataStructures/linearMemory/runtime/linearMemoryRegistry.ts
-
-/**
- * linearMemoryRegistry
- *
- * Registro técnico de estructuras de memoria lineal soportadas.
- *
- * Importante:
- * - Array conserva su runner actual.
- * - Stack, Queue y Circular Queue usarán el runner genérico.
- */
 
 import type { AlgoStep } from "../../../../shared/types/runtime.types";
 
@@ -26,11 +15,6 @@ import { createArrayOperationGenerator } from "../logic/arrayOperations";
 import { createStackOperationGenerator } from "../logic/stackOperations";
 import { createQueueOperationGenerator } from "../logic/queueOperations";
 import { createCircularQueueOperationGenerator } from "../logic/circularQueueOperations";
-
-/* -------------------------------------------------------------------------- */
-/* IDs                                                                         */
-/* -------------------------------------------------------------------------- */
-
 export const ARRAY_LINEAR_MEMORY_STRUCTURE_IDS = ["array"] as const;
 
 export const GENERIC_LINEAR_MEMORY_STRUCTURE_IDS = [
@@ -52,10 +36,6 @@ export type GenericLinearMemoryStructureId =
 
 export type LinearMemoryStructureId =
   (typeof LINEAR_MEMORY_STRUCTURE_IDS)[number];
-
-/* -------------------------------------------------------------------------- */
-/* Factories                                                                   */
-/* -------------------------------------------------------------------------- */
 
 type ArrayLinearMemoryGeneratorFactory = (
   values: number[],
@@ -94,10 +74,6 @@ const GENERIC_LINEAR_MEMORY_GENERATOR_FACTORIES = {
   "circular-queue": CircularQueueLinearMemoryGeneratorFactory;
 };
 
-/* -------------------------------------------------------------------------- */
-/* Type guards                                                                 */
-/* -------------------------------------------------------------------------- */
-
 export const isArrayLinearMemoryStructureId = (
   itemId: string,
 ): itemId is ArrayLinearMemoryStructureId => {
@@ -122,24 +98,12 @@ export const isLinearMemoryStructureId = (
   );
 };
 
-/* -------------------------------------------------------------------------- */
-/* Getters                                                                     */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Factory para Array.
- *
- * Se mantiene para no romper useLinearMemoryRunner actual.
- */
 export const getLinearMemoryGeneratorFactory = (
   structureId: ArrayLinearMemoryStructureId,
 ): ArrayLinearMemoryGeneratorFactory => {
   return ARRAY_LINEAR_MEMORY_GENERATOR_FACTORIES[structureId];
 };
 
-/**
- * Factory para Stack, Queue y Circular Queue.
- */
 export const getGenericLinearMemoryGeneratorFactory = (
   structureId: GenericLinearMemoryStructureId,
 ) => {

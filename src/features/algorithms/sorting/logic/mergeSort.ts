@@ -1,44 +1,7 @@
-// Ruta:
 // src/features/algorithms/sorting/logic/mergeSort.ts
-
-/**
- * mergeSortGenerator
- *
- * Generador puro para Merge Sort.
- *
- * Responsabilidad:
- * - Ordenar el arreglo recibido usando Merge Sort.
- * - Emitir pasos visuales para que useSortingRunner pinte la escena.
- *
- * Importante:
- * - No usa React.
- * - No usa Zustand.
- * - No usa Three.js.
- * - Sí muta el arreglo recibido, porque el runner trabaja con una copia interna.
- *
- * Merge Sort:
- * - Divide el arreglo en mitades.
- * - Ordena recursivamente cada mitad.
- * - Fusiona ambas mitades en orden.
- *
- * Convención visual:
- * - boundary  → límites del rango que se está fusionando.
- * - comparing → comparación entre elementos de izquierda y derecha.
- * - active    → escritura/movimiento de valor dentro del arreglo.
- * - sorted    → arreglo final ordenado.
- */
 
 import type { AlgoStep } from "../../../../shared/types/runtime.types";
 
-/**
- * Fusiona dos rangos ordenados:
- *
- * Izquierda:
- * [startIndex ... middleIndex]
- *
- * Derecha:
- * [middleIndex + 1 ... endIndex]
- */
 function* mergeRanges(
   values: number[],
   startIndex: number,
@@ -52,14 +15,6 @@ function* mergeRanges(
   let rightIndex = 0;
   let writeIndex = startIndex;
 
-  /**
-   * Marcamos visualmente el rango que se va a fusionar.
-   *
-   * boundaryIndices:
-   * - inicio del rango
-   * - mitad
-   * - final del rango
-   */
   yield {
     type: "boundary",
     activeIndices: [startIndex, middleIndex, endIndex],
@@ -70,10 +25,6 @@ function* mergeRanges(
     const leftVisualIndex = startIndex + leftIndex;
     const rightVisualIndex = middleIndex + 1 + rightIndex;
 
-    /**
-     * Comparamos el elemento actual de la mitad izquierda
-     * contra el elemento actual de la mitad derecha.
-     */
     yield {
       type: "comparing",
       activeIndices: [leftVisualIndex, rightVisualIndex],
@@ -89,10 +40,6 @@ function* mergeRanges(
       rightIndex++;
     }
 
-    /**
-     * active indica al runner que debe actualizar matrices,
-     * porque el arreglo cambió físicamente en writeIndex.
-     */
     yield {
       type: "active",
       activeIndices: [writeIndex],
@@ -102,9 +49,6 @@ function* mergeRanges(
     writeIndex++;
   }
 
-  /**
-   * Copia los elementos restantes de la mitad izquierda.
-   */
   while (leftIndex < leftValues.length) {
     values[writeIndex] = leftValues[leftIndex];
 
@@ -118,9 +62,6 @@ function* mergeRanges(
     writeIndex++;
   }
 
-  /**
-   * Copia los elementos restantes de la mitad derecha.
-   */
   while (rightIndex < rightValues.length) {
     values[writeIndex] = rightValues[rightIndex];
 
@@ -135,9 +76,6 @@ function* mergeRanges(
   }
 }
 
-/**
- * Divide recursivamente el arreglo y después fusiona.
- */
 function* mergeSortRange(
   values: number[],
   startIndex: number,
@@ -147,9 +85,6 @@ function* mergeSortRange(
 
   const middleIndex = Math.floor((startIndex + endIndex) / 2);
 
-  /**
-   * Marcamos el rango actual que se está dividiendo.
-   */
   yield {
     type: "boundary",
     activeIndices: [startIndex, middleIndex, endIndex],
@@ -170,9 +105,6 @@ export function* mergeSortGenerator(
 
   yield* mergeSortRange(values, 0, total - 1);
 
-  /**
-   * Al final, todo el arreglo queda ordenado.
-   */
   yield {
     type: "sorted",
     activeIndices: Array.from({ length: total }, (_, index) => index),

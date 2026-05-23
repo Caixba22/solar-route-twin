@@ -1,40 +1,7 @@
-// Ruta:
 // src/features/algorithms/sorting/logic/quickSort.ts
-
-/**
- * quickSortGenerator
- *
- * Generador puro para Quick Sort.
- *
- * Responsabilidad:
- * - Ordenar el arreglo recibido usando Quick Sort.
- * - Emitir pasos visuales para que useSortingRunner pinte la escena.
- *
- * Importante:
- * - No usa React.
- * - No usa Zustand.
- * - No usa Three.js.
- * - Sí muta el arreglo recibido, porque el runner trabaja con una copia interna.
- *
- * Quick Sort:
- * - Elige un pivote.
- * - Particiona el arreglo en menores y mayores respecto al pivote.
- * - Coloca el pivote en su posición final.
- * - Repite el proceso recursivamente en las particiones izquierda y derecha.
- *
- * Convención visual:
- * - pivot     → pivote.
- * - boundary  → frontera de partición.
- * - comparing → elemento comparado contra el pivote.
- * - active    → intercambio físico de barras.
- * - sorted    → índice que ya quedó en posición final.
- */
 
 import type { AlgoStep } from "../../../../shared/types/runtime.types";
 
-/**
- * Intercambia dos valores dentro del arreglo.
- */
 const swap = (values: number[], firstIndex: number, secondIndex: number) => {
   [values[firstIndex], values[secondIndex]] = [
     values[secondIndex],
@@ -42,11 +9,6 @@ const swap = (values: number[], firstIndex: number, secondIndex: number) => {
   ];
 };
 
-/**
- * Particiona el rango usando el último elemento como pivote.
- *
- * Devuelve la posición final del pivote.
- */
 function* partition(
   values: number[],
   lowIndex: number,
@@ -55,9 +17,6 @@ function* partition(
   const pivotValue = values[highIndex];
   let boundaryIndex = lowIndex;
 
-  /**
-   * Marcamos el pivote actual con color propio.
-   */
   yield {
     type: "pivot",
     activeIndices: [highIndex],
@@ -66,12 +25,7 @@ function* partition(
   };
 
   for (let scanIndex = lowIndex; scanIndex < highIndex; scanIndex++) {
-    /**
-     * Comparamos el elemento escaneado contra el pivote.
-     *
-     * El pivote se mantiene con su color especial,
-     * mientras el scanIndex usa color de comparación.
-     */
+  
     yield {
       type: "comparing",
       activeIndices: [scanIndex],
@@ -84,9 +38,6 @@ function* partition(
       if (boundaryIndex !== scanIndex) {
         swap(values, boundaryIndex, scanIndex);
 
-        /**
-         * Mostramos el intercambio.
-         */
         yield {
           type: "active",
           activeIndices: [boundaryIndex, scanIndex],
@@ -97,9 +48,6 @@ function* partition(
 
       boundaryIndex++;
 
-      /**
-       * Mostramos cómo avanza la frontera de partición.
-       */
       yield {
         type: "boundary",
         activeIndices: [boundaryIndex],
@@ -109,9 +57,6 @@ function* partition(
     }
   }
 
-  /**
-   * Colocamos el pivote en su posición final.
-   */
   if (boundaryIndex !== highIndex) {
     swap(values, boundaryIndex, highIndex);
 
@@ -122,9 +67,6 @@ function* partition(
     };
   }
 
-  /**
-   * El pivote ya quedó definitivamente ordenado.
-   */
   yield {
     type: "sorted",
     activeIndices: [boundaryIndex],
@@ -134,9 +76,7 @@ function* partition(
   return boundaryIndex;
 }
 
-/**
- * Quick Sort recursivo por rangos.
- */
+
 function* quickSortRange(
   values: number[],
   lowIndex: number,
@@ -144,10 +84,7 @@ function* quickSortRange(
 ): Generator<AlgoStep, void, unknown> {
   if (lowIndex > highIndex) return;
 
-  /**
-   * Caso base:
-   * si el rango tiene un solo elemento, ya está ordenado.
-   */
+ 
   if (lowIndex === highIndex) {
     yield {
       type: "sorted",
@@ -160,14 +97,9 @@ function* quickSortRange(
 
   const pivotFinalIndex = yield* partition(values, lowIndex, highIndex);
 
-  /**
-   * Ordena la partición izquierda.
-   */
+  
   yield* quickSortRange(values, lowIndex, pivotFinalIndex - 1);
 
-  /**
-   * Ordena la partición derecha.
-   */
   yield* quickSortRange(values, pivotFinalIndex + 1, highIndex);
 }
 
@@ -180,9 +112,6 @@ export function* quickSortGenerator(
 
   yield* quickSortRange(values, 0, total - 1);
 
-  /**
-   * Al final, reforzamos visualmente que todo el arreglo quedó ordenado.
-   */
   yield {
     type: "sorted",
     activeIndices: Array.from({ length: total }, (_, index) => index),

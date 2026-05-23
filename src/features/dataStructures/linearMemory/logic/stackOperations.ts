@@ -1,31 +1,4 @@
-// Ruta:
 // src/features/dataStructures/linearMemory/logic/stackOperations.ts
-
-/**
- * stackOperations
- *
- * Lógica pura para operaciones sobre Stack.
- *
- * Stack:
- * - Estructura LIFO.
- * - LIFO significa Last In, First Out.
- * - En español: último en entrar, primero en salir.
- *
- * Importante:
- * - No usa React.
- * - No usa Three.js.
- * - No usa Zustand.
- * - Solo emite pasos visuales.
- *
- * Representación visual:
- * - Usamos una memoria lineal.
- * - El TOP de la pila se considera el último índice del arreglo.
- *
- * Ejemplo:
- * [12, 7, 30]
- *           ↑
- *          TOP
- */
 
 import type { AlgoStep } from "../../../../shared/types/runtime.types";
 
@@ -42,9 +15,6 @@ export type StackOperationId = (typeof STACK_OPERATION_IDS)[number];
 export type StackOperationConfig = {
   operationId: StackOperationId;
 
-  /**
-   * Valor que se agregará en push().
-   */
   pushValue: number;
 };
 
@@ -63,13 +33,6 @@ const getStackBoundaries = (values: number[]): number[] => {
   return [0, values.length - 1];
 };
 
-/**
- * Operación:
- * Recorrer pila.
- *
- * A diferencia del array, aquí el recorrido didáctico se hace desde TOP
- * hacia la base, porque Stack se entiende desde su parte superior.
- */
 function* stackTraversalGenerator(
   values: number[],
 ): Generator<AlgoStep, void, unknown> {
@@ -114,16 +77,6 @@ function* stackTraversalGenerator(
   };
 }
 
-/**
- * Operación:
- * push()
- *
- * Agrega un nuevo valor sobre el TOP actual.
- *
- * Nota:
- * Este generador no muta el arreglo.
- * Solo describe la operación visual.
- */
 function* stackPushGenerator(
   values: number[],
   nextValue: number,
@@ -181,14 +134,6 @@ function* stackPushGenerator(
   };
 }
 
-/**
- * Operación:
- * pop()
- *
- * Elimina el elemento que está en TOP.
- *
- * En Stack, pop siempre actúa sobre el último elemento agregado.
- */
 function* stackPopGenerator(
   values: number[],
 ): Generator<AlgoStep, void, unknown> {
@@ -233,12 +178,6 @@ function* stackPopGenerator(
   };
 }
 
-/**
- * Operación:
- * peek()
- *
- * Consulta el valor en TOP sin eliminarlo.
- */
 function* stackPeekGenerator(
   values: number[],
 ): Generator<AlgoStep, void, unknown> {
@@ -267,12 +206,6 @@ function* stackPeekGenerator(
   };
 }
 
-/**
- * Operación:
- * isEmpty()
- *
- * Comprueba si la pila está vacía.
- */
 function* stackIsEmptyGenerator(
   values: number[],
 ): Generator<AlgoStep, void, unknown> {
@@ -301,9 +234,6 @@ function* stackIsEmptyGenerator(
   };
 };
 
-/**
- * Crea el generador correcto según la operación seleccionada.
- */
 export const createStackOperationGenerator = (
   values: number[],
   config: StackOperationConfig,

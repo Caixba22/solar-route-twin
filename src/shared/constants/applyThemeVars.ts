@@ -1,14 +1,4 @@
-// Ruta:
 // src/shared/constants/applyThemeVars.ts
-
-/**
- * applyThemeVars
- *
- * Aplica los valores de ALGO_THEME como variables CSS globales.
- *
- * Esto permite usar los colores del tema desde Tailwind/CSS
- * sin duplicar valores.
- */
 
 import { ALGO_THEME } from "./theme";
 
