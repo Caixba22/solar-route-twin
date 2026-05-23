@@ -1,3 +1,4 @@
+// Ruta:
 // src/features/dataStructures/linearMemory/logic/queueOperations.ts
 
 import type { AlgoStep } from "../../../../shared/types/runtime.types";
@@ -23,7 +24,13 @@ const createIndexRange = (endExclusive: number): number[] => {
   return Array.from({ length: endExclusive }, (_, index) => index);
 };
 
-const getQueueFrontIndex = (values: number[]): number => {
+/**
+ * En una cola lineal representada como array visual,
+ * FRONT siempre inicia en la posición 0.
+ *
+ * No recibe values porque no necesita leer el arreglo.
+ */
+const getQueueFrontIndex = (): number => {
   return 0;
 };
 
@@ -159,7 +166,7 @@ function* queueDequeueGenerator(
   }
 
   const boundaryIndices = getQueueBoundaries(values);
-  const frontIndex = getQueueFrontIndex(values);
+  const frontIndex = getQueueFrontIndex();
   const rearIndex = getQueueRearIndex(values);
   const removedValue = values[frontIndex];
 
@@ -216,7 +223,7 @@ function* queueFrontGenerator(
   }
 
   const boundaryIndices = getQueueBoundaries(values);
-  const frontIndex = getQueueFrontIndex(values);
+  const frontIndex = getQueueFrontIndex();
 
   yield {
     type: "active",
@@ -272,7 +279,7 @@ function* queueIsEmptyGenerator(
   }
 
   const boundaryIndices = getQueueBoundaries(values);
-  const frontIndex = getQueueFrontIndex(values);
+  const frontIndex = getQueueFrontIndex();
   const rearIndex = getQueueRearIndex(values);
 
   yield {

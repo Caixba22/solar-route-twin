@@ -1,9 +1,9 @@
+// Ruta:
 // src/features/dataStructures/linearMemory/runtime/linearMemoryRegistry.ts
 
 import type { AlgoStep } from "../../../../shared/types/runtime.types";
 
 import type {
-  ArrayMemoryOperationConfig,
   CircularQueueMemoryOperationConfig,
   CircularQueueSlot,
   LinearMemoryOperationConfig,
@@ -15,6 +15,7 @@ import { createArrayOperationGenerator } from "../logic/arrayOperations";
 import { createStackOperationGenerator } from "../logic/stackOperations";
 import { createQueueOperationGenerator } from "../logic/queueOperations";
 import { createCircularQueueOperationGenerator } from "../logic/circularQueueOperations";
+
 export const ARRAY_LINEAR_MEMORY_STRUCTURE_IDS = ["array"] as const;
 
 export const GENERIC_LINEAR_MEMORY_STRUCTURE_IDS = [
